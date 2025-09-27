@@ -1,59 +1,58 @@
 <!doctype html>
 <html lang="pt-br">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MVP – Registro de Ocorrência (sem login)</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Registro de Ocorrência — Professor (com login)</title>
   <style>
-    body{font-family: system-ui, Arial, sans-serif; margin:24px; max-width:760px}
-    h1{font-size:1.4rem; margin-bottom:8px}
-    .card{border:1px solid #ddd; border-radius:12px; padding:16px; margin-bottom:16px}
-    label{display:block; margin:8px 0 4px}
-    input, select, textarea, button{width:100%; padding:10px; border:1px solid #ccc; border-radius:8px}
-    textarea{min-height:90px}
-    .row{display:grid; grid-template-columns:1fr 1fr; gap:12px}
-    .hint{color:#666; font-size:.9rem}
-    .ok{background:#e6ffed; border-color:#b7f2c0}
-    .err{background:#ffecec; border-color:#ffb3b3}
+    body{font-family:system-ui,Arial,sans-serif;margin:24px;max-width:760px}
+    h1{font-size:1.4rem;margin-bottom:8px}
+    .card{border:1px solid #ddd;border-radius:12px;padding:16px;margin-bottom:16px}
+    label{display:block;margin:8px 0 4px}
+    input,select,textarea,button{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px}
+    textarea{min-height:100px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .hint{color:#666;font-size:.9rem}
+    .ok{background:#e6ffed;border-color:#b7f2c0}
+    .err{background:#ffecec;border-color:#ffb3b3}
     .hidden{display:none}
-    .chips{display:flex; flex-wrap:wrap; gap:8px; margin:8px 0}
-    .chip{border:1px solid #ccc; padding:6px 10px; border-radius:999px; cursor:pointer; user-select:none}
-    .chip.active{background:#eef; border-color:#99c}
-    .footer{font-size:.85rem; color:#666; margin-top:24px}
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+    .chip{border:1px solid #ccc;padding:6px 10px;border-radius:999px;cursor:pointer;user-select:none}
+    .chip.active{background:#eef;border-color:#99c}
+    .row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+    .muted{color:#666;font-size:.9rem}
+    .actions{display:flex;gap:10px}
   </style>
 </head>
 <body>
-  <h1>MVP – Registro de Ocorrência (sem login)</h1>
-  <p class="hint">⚠️ MVP de demonstração. Não usar em produção. Use iniciais/códigos (sem nome completo).</p>
+  <h1>Registro de Ocorrência — Professor</h1>
+  <p class="muted">Faça login com seu e-mail para carregar suas turmas e registrar ocorrências.</p>
 
-  <div class="card">
-    <label>PIN do professor (4 dígitos)</label>
-    <input id="pin" placeholder="Ex.: 1234" maxlength="6">
+  <div class="actions">
+    <button id="login">Entrar com e-mail</button>
+    <button id="logout" class="hidden">Sair</button>
+    <span id="who" class="muted"></span>
   </div>
 
-  <div class="card">
-    <div class="row">
+  <div id="form" class="card hidden">
+    <div class="row-3">
       <div>
-        <label>Turma</label>
+        <label>Turma (vinculada ao seu usuário)</label>
         <select id="turma">
-          <option value="">Selecione...</option>
-          <option>6ºA</option><option>6ºB</option>
-          <option>7ºA</option><option>7ºB</option>
-          <option>8ºA</option><option>8ºB</option>
-          <option>9ºA</option><option>9ºB</option>
+          <option value="">Carregando...</option>
         </select>
       </div>
       <div>
         <label>Professor(a)</label>
-        <input id="professor" placeholder="Ex.: M. Souza" maxlength="60">
+        <input id="professor" placeholder="Ex.: M. Souza" maxlength="50" />
+      </div>
+      <div>
+        <label>Aluno (iniciais/código)</label>
+        <input id="aluno" placeholder="Ex.: A23" maxlength="50" />
       </div>
     </div>
 
     <div class="row">
-      <div>
-        <label>Aluno (iniciais/código)</label>
-        <input id="aluno" placeholder="Ex.: A23" maxlength="12" pattern=".{1,12}" title="Use até 12 caracteres">
-      </div>
       <div>
         <label>Ocorrência</label>
         <select id="ocorrencia">
@@ -63,9 +62,6 @@
           <option value="grave">Grave (desrespeito / conflito)</option>
         </select>
       </div>
-    </div>
-
-    <div class="row">
       <div>
         <label>Passo do Protocolo</label>
         <select id="passo">
@@ -78,87 +74,147 @@
           <option value="acompanhamento">Acompanhamento reflexivo</option>
         </select>
       </div>
-      <div>
-        <label>Sinais observados (opcional)</label>
-        <div class="chips" id="sinais">
-          <div class="chip" data-key="distracao">Distração</div>
-          <div class="chip" data-key="ansiedade">Ansiedade/irritação</div>
-          <div class="chip" data-key="isolamento">Isolamento social</div>
-          <div class="chip" data-key="queda">Queda no rendimento</div>
-          <div class="chip" data-key="sonolencia">Sonolência</div>
-        </div>
-      </div>
+    </div>
+
+    <label>Sinais observados (opcional)</label>
+    <div class="chips" id="sinais">
+      <div class="chip" data-key="distracao">Distração</div>
+      <div class="chip" data-key="ansiedade">Ansiedade/irritação</div>
+      <div class="chip" data-key="isolamento">Isolamento social</div>
+      <div class="chip" data-key="queda">Queda no rendimento</div>
+      <div class="chip" data-key="sonolencia">Sonolência</div>
     </div>
 
     <label>Observações (opcional)</label>
-    <textarea id="obs" placeholder="Descrição objetiva do fato (máx. 1000 caracteres)"></textarea>
+    <textarea id="obs" placeholder="Descrição objetiva do fato (máx. 1000 caracteres)" maxlength="1000"></textarea>
 
     <button id="enviar">Enviar registro</button>
     <div id="msg" class="card hidden"></div>
   </div>
 
-  <div class="footer">Configure SUPABASE_URL e SUPABASE_ANON_KEY abaixo.</div>
+  <p class="hint">LGPD: evite nomes completos; use códigos/iniciais quando possível.</p>
 
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-    const SUPABASE_URL = "https://wzzryluesqxwyijievyj.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6enJ5bHVlc3F4d3lpamlldnlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg5OTk2NjYsImV4cCI6MjA3NDU3NTY2Nn0.aqT7PaKjj9QS547HEQ7EDyl8kvCIg4GrQJ4AXvjsG0k";
+    // >>> coloque os valores do seu projeto
+    const SUPABASE_URL = "https://esm.sh/@supabase/supabase-js@2";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9....";
+    // <<<
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const PIN_ESPERADO = "1234"; // troque para a sua demo
-
-    const chips = document.querySelectorAll('.chip');
-    chips.forEach(c => c.addEventListener('click', () => c.classList.toggle('active')));
-
+    // util
     const $ = (id) => document.getElementById(id);
-    const msg = $("msg");
+    const chips = document.querySelectorAll(".chip");
+    chips.forEach(c => c.addEventListener("click", () => c.classList.toggle("active")));
 
-    function showMessage(text, ok=true){
-      msg.className = "card " + (ok ? "ok" : "err");
-      msg.textContent = text;
-      msg.classList.remove("hidden");
+    function showMsg(text, ok=true){
+      const box = $("msg");
+      box.className = "card " + (ok ? "ok" : "err");
+      box.textContent = text;
+      box.classList.remove("hidden");
     }
 
     function getSinais(){
-      return Array.from(document.querySelectorAll('.chip.active')).map(c => c.dataset.key);
+      return Array.from(document.querySelectorAll(".chip.active")).map(c => c.dataset.key);
     }
 
-    $("enviar").addEventListener("click", async () => {
-      const pin = $("pin").value.trim();
-      if(pin !== PIN_ESPERADO){ showMessage("PIN inválido.", false); return; }
+    // ====== LOGIN / LOGOUT ======
+    $("login").onclick = async () => {
+      const email = prompt("Digite seu e-mail:");
+      if (!email) return;
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: window.location.href }
+      });
+      if (error) alert("Erro ao enviar link: " + error.message);
+      else alert("Verifique seu e-mail e clique no link para entrar.");
+    };
 
-      const turma = $("turma").value.trim();
-      const professor = $("professor").value.trim();
-      const aluno = $("aluno").value.trim();
-      const ocorrencia = $("ocorrencia").value;
-      const passo = $("passo").value;
-      const sinais = getSinais();
-      const observacoes = $("obs").value.trim();
+    $("logout").onclick = async () => {
+      await supabase.auth.signOut();
+      location.reload();
+    };
 
-      if(!turma || !professor || !aluno || !ocorrencia || !passo){
-        showMessage("Preencha os campos obrigatórios.", false);
+    // ====== PÓS-LOGIN: checar papel e carregar turmas ======
+    async function boot(){
+      const { data:{ session } } = await supabase.auth.getSession();
+      if (!session){
+        $("form").classList.add("hidden");
+        $("logout").classList.add("hidden");
+        $("login").classList.remove("hidden");
+        $("who").textContent = "";
         return;
       }
 
-     const { error } = await supabase.from("ocorrencias").insert([{
-  turma, professor, aluno_codigo: aluno,
-  ocorrencia, passo_protocolo: passo, sinais, observacoes
-}]);
+      const uid = session.user.id;
+      $("who").textContent = "Logado: " + (session.user.email || uid);
+      $("logout").classList.remove("hidden");
+      $("login").classList.add("hidden");
 
-if (error) {
-  console.error(error);
-  showMessage("Falha ao enviar: " + (error.message || "erro desconhecido"), false);
-  return;
-}
+      // papel
+      const { data: perfil, error: ePerfil } = await supabase
+        .from("perfis").select("papel").eq("user_id", uid).maybeSingle();
+      if (ePerfil){ showMsg("Erro ao carregar perfil: " + ePerfil.message, false); return; }
+      if (!perfil || perfil.papel !== "teacher"){
+        showMsg("Seu usuário não está autorizado como TEACHER.", false);
+        return;
+      }
 
-      $("aluno").value = "";
-      $("ocorrencia").value = "";
-      $("passo").value = "";
-      $("obs").value = "";
-      chips.forEach(c => c.classList.remove('active'));
-      showMessage("Registro enviado com sucesso!");
-    });
+      // turmas vinculadas
+      const { data: turmas, error: eTurmas } = await supabase
+        .from("turmas_prof").select("turma").eq("user_id", uid).order("turma");
+      if (eTurmas){ showMsg("Erro ao carregar turmas: " + eTurmas.message, false); return; }
+      if (!turmas || turmas.length === 0){
+        showMsg("Nenhuma turma vinculada ao seu usuário. Peça a um gestor para cadastrar em 'turmas_prof'.", false);
+        return;
+      }
+
+      const sel = $("turma");
+      sel.innerHTML = '<option value="">Selecione...</option>' + turmas.map(t => `<option>${t.turma}</option>`).join("");
+
+      $("form").classList.remove("hidden");
+
+      // envio
+      $("enviar").onclick = async () => {
+        const turma = $("turma").value.trim();
+        const professor = $("professor").value.trim();
+        const aluno = $("aluno").value.trim();
+        const ocorrencia = $("ocorrencia").value;
+        const passo = $("passo").value;
+        const observacoes = $("obs").value.trim();
+        const sinais = getSinais();
+
+        if (!turma || !professor || !aluno || !ocorrencia || !passo){
+          showMsg("Preencha Turma, Professor, Aluno, Ocorrência e Passo.", false); return;
+        }
+        if (professor.length > 50){ showMsg("Professor deve ter até 50 caracteres.", false); return; }
+        if (aluno.length > 50){ showMsg("Aluno deve ter até 50 caracteres.", false); return; }
+
+        const { error } = await supabase.from("ocorrencias").insert([{
+          turma, professor, aluno_codigo: aluno,
+          ocorrencia, passo_protocolo: passo, sinais, observacoes,
+          created_by: uid
+        }]);
+
+        if (error){ showMsg("Falha ao enviar: " + error.message, false); return; }
+
+        // limpar
+        $("aluno").value = "";
+        $("ocorrencia").value = "";
+        $("passo").value = "";
+        $("obs").value = "";
+        chips.forEach(c => c.classList.remove("active"));
+        showMsg("Registro enviado com sucesso!");
+      };
+    }
+
+    // tenta iniciar com sessão existente (depois de clicar no link)
+    boot();
+
+    // também re-inicia quando a sessão mudar
+    supabase.auth.onAuthStateChange((_event, _session) => boot());
   </script>
 </body>
 </html>
