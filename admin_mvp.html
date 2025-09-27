@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MVP – Painel (sem login)</title>
+  <style>
+    body{font-family: system-ui, Arial, sans-serif; margin:24px; max-width:1000px}
+    h1{font-size:1.4rem}
+    .card{border:1px solid #ddd; border-radius:12px; padding:16px; margin-bottom:16px}
+    table{width:100%; border-collapse:collapse; margin-top:12px}
+    th, td{border-bottom:1px solid #eee; padding:8px; text-align:left; font-size:.95rem}
+    .pill{display:inline-block; padding:4px 8px; border-radius:999px; background:#eef; margin-right:6px; font-size:.8rem}
+    .muted{color:#666; font-size:.9rem}
+  </style>
+</head>
+<body>
+  <h1>MVP – Painel (sem login)</h1>
+  <p class="muted">⚠️ Demo. Requer policy de SELECT anônimo e Realtime habilitado.</p>
+
+  <div class="card">
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th>Data/Hora</th><th>Turma</th><th>Professor</th><th>Aluno</th>
+          <th>Ocorrência</th><th>Passo</th><th>Sinais</th><th>Obs.</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <p class="muted">Atualiza automaticamente (Supabase Realtime).</p>
+  </div>
+
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+    const SUPABASE_URL = "https://wzzryluesqxwyijievyj.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6enJ5bHVlc3F4d3lpamlldnlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg5OTk2NjYsImV4cCI6MjA3NDU3NTY2Nn0.aqT7PaKjj9QS547HEQ7EDyl8kvCIg4GrQJ4AXvjsG0k";
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const tbody = document.querySelector("#tbl tbody");
+    let currentData = [];
+
+    function render(){
+      tbody.innerHTML = currentData.map(r => `
+        <tr>
+          <td>${new Date(r.created_at).toLocaleString('pt-BR')}</td>
+          <td>${r.turma||''}</td>
+          <td>${r.professor||''}</td>
+          <td>${r.aluno_codigo||''}</td>
+          <td>${r.ocorrencia||''}</td>
+          <td>${r.passo_protocolo||''}</td>
+          <td>${(r.sinais||[]).map(s=>`<span class="pill">${s}</span>`).join('')}</td>
+          <td>${(r.observacoes||'').substring(0,120)}</td>
+        </tr>
+      `).join("");
+    }
+
+    async function start(){
+      const { data, error } = await supabase.from("ocorrencias")
+        .select("*").order("created_at", { ascending: false }).limit(50);
+      if(error){ alert("Falha ao carregar. Verifique a policy de SELECT e Realtime."); return; }
+      currentData = data || [];
+      render();
+
+      supabase
+        .channel('ocorrencias')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'ocorrencias' }, payload => {
+          const row = payload.new;
+          currentData.unshift(row);
+          currentData = currentData.slice(0,50);
+          render();
+        })
+        .subscribe();
+    }
+    start();
+  </script>
+</body>
+</html>
+
