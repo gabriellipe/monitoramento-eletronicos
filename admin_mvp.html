@@ -129,7 +129,7 @@
       const here = location.href.split('#')[0].split('?')[0];
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: here }
+        options: { redirectTo: 'https://gabriellipe.github.io/monitoramento-eletronicos/admin_mvp.html' }
       });
       if (error) alert("Falha no login Google: " + error.message);
     };
