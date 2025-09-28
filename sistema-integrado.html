@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Infrações Disciplinares</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="style-supabase.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Tela de Login -->
+        <div id="login-screen" class="screen active">
+            <div class="container">
+                <div class="login-container">
+                    <div class="card">
+                        <div class="card__body">
+                            <h1 class="login-title">Sistema de Infrações Disciplinares</h1>
+                            <p class="login-subtitle">Faça login para acessar o sistema</p>
+                            
+                            <form id="login-form" class="login-form">
+                                <div class="form-group">
+                                    <label for="email">Email:</label>
+                                    <input type="email" id="email" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="password">Senha:</label>
+                                    <input type="password" id="password" required>
+                                </div>
+                                <button type="submit" class="btn btn--primary btn--lg">Entrar</button>
+                            </form>
+                            
+                            <div id="login-error" class="error-message hidden"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interface do Professor -->
+        <div id="professor-screen" class="screen hidden">
+            <div class="container">
+                <div class="header">
+                    <h1>Painel do Professor</h1>
+                    <div class="header-actions">
+                        <span id="professor-name" class="user-name"></span>
+                        <button class="btn btn--outline" onclick="logout()">Sair</button>
+                    </div>
+                </div>
+
+                <!-- Gerenciar Turmas -->
+                <div class="card">
+                    <div class="card__header">
+                        <h2>Minhas Turmas</h2>
+                    </div>
+                    <div class="card__body">
+                        <div class="form-group">
+                            <label for="nova-turma">Adicionar Nova Turma:</label>
+                            <div class="turma-input-group">
+                                <input type="text" id="nova-turma" placeholder="Ex: 7°A, 8°B, 9°C" maxlength="4">
+                                <button type="button" class="btn btn--primary" onclick="adicionarTurma()">Adicionar</button>
+                            </div>
+                        </div>
+                        <div id="turmas-professor" class="chips-container">
+                            <!-- Turmas do professor aparecerão aqui -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Registrar Ocorrência -->
+                <div class="card">
+                    <div class="card__header">
+                        <h2>Registrar Ocorrência</h2>
+                    </div>
+                    <div class="card__body">
+                        <form id="ocorrencia-form" class="form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="turma-select">Turma:</label>
+                                    <select id="turma-select" required>
+                                        <option value="">Selecione uma turma</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="aluno-nome">Nome do Aluno:</label>
+                                    <input type="text" id="aluno-nome" required placeholder="Digite o nome do aluno">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="tipo-ocorrencia">Tipo de Ocorrência:</label>
+                                <select id="tipo-ocorrencia" required>
+                                    <option value="">Selecione o tipo</option>
+                                    <option value="Uso de celular durante a aula">Uso de celular durante a aula</option>
+                                    <option value="Conversa excessiva">Conversa excessiva</option>
+                                    <option value="Não fez a atividade">Não fez a atividade</option>
+                                    <option value="Comportamento inadequado">Comportamento inadequado</option>
+                                    <option value="Atraso">Atraso</option>
+                                    <option value="Outros">Outros</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="descricao">Descrição da Ocorrência:</label>
+                                <textarea id="descricao" placeholder="Descreva detalhes da situação..." required></textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn btn--primary btn--lg">Registrar Ocorrência</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interface do Gestor -->
+        <div id="gestor-screen" class="screen hidden">
+            <div class="container">
+                <div class="header">
+                    <h1>Dashboard do Gestor</h1>
+                    <div class="header-actions">
+                        <span id="gestor-name" class="user-name"></span>
+                        <button class="btn btn--outline" onclick="logout()">Sair</button>
+                    </div>
+                </div>
+
+                <!-- Abas de Navegação -->
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="showTab('ocorrencias')">Ocorrências</button>
+                    <button class="tab-btn" onclick="showTab('usuarios')">Gerenciar Usuários</button>
+                    <button class="tab-btn" onclick="showTab('estatisticas')">Estatísticas</button>
+                </div>
+
+                <!-- Aba Ocorrências -->
+                <div id="tab-ocorrencias" class="tab-content active">
+                    <!-- Estatísticas -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number" id="stats-hoje">0</div>
+                            <div class="stat-label">Ocorrências Hoje</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="stats-pendentes">0</div>
+                            <div class="stat-label">Pendentes</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="stats-resolvidas">0</div>
+                            <div class="stat-label">Resolvidas</div>
+                        </div>
+                    </div>
+
+                    <!-- Filtros -->
+                    <div class="card">
+                        <div class="card__header">
+                            <h3>Filtrar Ocorrências</h3>
+                        </div>
+                        <div class="card__body">
+                            <div class="filters">
+                                <select id="filter-status">
+                                    <option value="">Todos os Status</option>
+                                    <option value="pendente">Pendentes</option>
+                                    <option value="resolvida">Resolvidas</option>
+                                </select>
+                                <select id="filter-turma">
+                                    <option value="">Todas as Turmas</option>
+                                </select>
+                                <input type="date" id="filter-data" placeholder="Data">
+                                <button class="btn btn--outline" onclick="loadOcorrencias()">Filtrar</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Ocorrências -->
+                    <div class="card">
+                        <div class="card__header">
+                            <h3>Ocorrências</h3>
+                        </div>
+                        <div class="card__body">
+                            <div id="ocorrencias-list" class="ocorrencias-list">
+                                <!-- Ocorrências serão carregadas aqui -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aba Usuários -->
+                <div id="tab-usuarios" class="tab-content hidden">
+                    <div class="card">
+                        <div class="card__header">
+                            <h3>Gerenciar Usuários</h3>
+                        </div>
+                        <div class="card__body">
+                            <form id="usuario-form" class="form">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="usuario-email">Email do Usuário:</label>
+                                        <input type="email" id="usuario-email" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="usuario-papel">Papel:</label>
+                                        <select id="usuario-papel" required>
+                                            <option value="">Selecionar papel</option>
+                                            <option value="teacher">Professor</option>
+                                            <option value="manager">Gestor</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn--primary">Adicionar/Atualizar Usuário</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card__header">
+                            <h3>Usuários do Sistema</h3>
+                        </div>
+                        <div class="card__body">
+                            <div id="usuarios-list">
+                                <!-- Lista de usuários será carregada aqui -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aba Estatísticas -->
+                <div id="tab-estatisticas" class="tab-content hidden">
+                    <div class="card">
+                        <div class="card__header">
+                            <h3>Relatórios e Estatísticas</h3>
+                        </div>
+                        <div class="card__body">
+                            <div id="charts-container">
+                                <!-- Gráficos e relatórios serão carregados aqui -->
+                                <p class="empty-state">Relatórios em desenvolvimento...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+        </div>
+
+        <!-- Messages -->
+        <div id="message" class="message hidden"></div>
+    </div>
+
+    <script src="app-supabase-integrado.js"></script>
+</body>
+</html>
