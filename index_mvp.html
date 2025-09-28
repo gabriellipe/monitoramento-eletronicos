@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Registro de Ocorrência — Professor (com Google)</title>
+  <title>Registro de Ocorrência — Professor (Google)</title>
   <style>
     body{font-family:system-ui,Arial,sans-serif;margin:24px;max-width:760px}
     h1{font-size:1.4rem;margin-bottom:8px}
@@ -12,7 +12,7 @@
     input,select,textarea,button{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px}
     textarea{min-height:100px}
     .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .hint{color:#666;font-size:.9rem}
+    .muted{color:#666;font-size:.9rem}
     .ok{background:#e6ffed;border-color:#b7f2c0}
     .err{background:#ffecec;border-color:#ffb3b3}
     .hidden{display:none}
@@ -20,13 +20,13 @@
     .chip{border:1px solid #ccc;padding:6px 10px;border-radius:999px;cursor:pointer;user-select:none}
     .chip.active{background:#eef;border-color:#99c}
     .row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
-    .muted{color:#666;font-size:.9rem}
     .actions{display:flex;gap:10px;align-items:center}
+    .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#eef;margin:4px 6px 0 0;font-size:.85rem}
   </style>
 </head>
 <body>
   <h1>Registro de Ocorrência — Professor</h1>
-  <p class="muted">Faça login com o Google para carregar suas turmas e registrar ocorrências.</p>
+  <p class="muted">Faça login com Google. Vincule quantas turmas precisar; depois envie ocorrências.</p>
 
   <div class="actions">
     <button id="login">Entrar com Google</button>
@@ -34,23 +34,34 @@
     <span id="who" class="muted"></span>
   </div>
 
-  <!-- Card para auto-vínculo por código -->
-  <div id="join" class="card hidden">
-    <h3>Vincular-se a uma turma</h3>
-    <label>Código da turma (ex.: 8A-2K9F)</label>
-    <input id="joincode" placeholder="Digite o código recebido da gestão">
-    <button id="joinbtn">Vincular</button>
-    <p class="hint">Peça o código da turma à gestão. Após vincular, o formulário será exibido.</p>
+  <!-- Vincular turma (sempre visível) -->
+  <div id="vinculo" class="card">
+    <h3>Vincular turma</h3>
+    <div class="row">
+      <div>
+        <label>Ano</label>
+        <select id="anoSel"></select>
+      </div>
+      <div>
+        <label>Letra</label>
+        <select id="letraSel"></select>
+      </div>
+    </div>
+    <button id="btn_vincular" style="margin-top:10px">Vincular</button>
+    <p class="muted" style="margin-top:6px">Formato: 4ºA, 4ºB … 9ºD.</p>
+
+    <div id="minhasTurmas" style="margin-top:10px">
+      <strong>Suas turmas:</strong>
+      <div id="turmasTags" style="margin-top:6px"></div>
+    </div>
   </div>
 
-  <!-- Formulário principal -->
+  <!-- Formulário -->
   <div id="form" class="card hidden">
     <div class="row-3">
       <div>
-        <label>Turma (vinculada ao seu usuário)</label>
-        <select id="turma">
-          <option value="">Carregando...</option>
-        </select>
+        <label>Turma</label>
+        <select id="turma"><option value="">Selecione...</option></select>
       </div>
       <div>
         <label>Professor(a)</label>
@@ -96,111 +107,117 @@
     </div>
 
     <label>Observações (opcional)</label>
-    <textarea id="obs" placeholder="Descrição objetiva do fato (máx. 1000 caracteres)" maxlength="1000"></textarea>
+    <textarea id="obs" placeholder="Descrição objetiva (máx. 1000)" maxlength="1000"></textarea>
 
     <button id="enviar">Enviar registro</button>
     <div id="msg" class="card hidden"></div>
   </div>
 
-  <p class="hint">LGPD: evite nomes completos; use códigos/iniciais quando possível.</p>
-
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-    // >>> coloque os valores do seu projeto
-    const SUPABASE_URL = "https://wzzryluesqxwyijievyj.supabase.co";
+    // >>> Substitua pelos seus valores
+   const SUPABASE_URL = "https://wzzryluesqxwyijievyj.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6enJ5bHVlc3F4d3lpamlldnlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg5OTk2NjYsImV4cCI6MjA3NDU3NTY2Nn0.aqT7PaKjj9QS547HEQ7EDyl8kvCIg4GrQJ4AXvjsG0k";
     // <<<
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const $ = (id) => document.getElementById(id);
 
+    const $ = (id) => document.getElementById(id);
     const chips = document.querySelectorAll(".chip");
     chips.forEach(c => c.addEventListener("click", () => c.classList.toggle("active")));
+    const getSinais = () => Array.from(document.querySelectorAll(".chip.active")).map(c => c.dataset.key);
 
     function showMsg(text, ok=true){
-      const box = $("msg");
-      if (!box) return;
+      const box = $("msg"); if(!box) return;
       box.className = "card " + (ok ? "ok" : "err");
       box.textContent = text;
       box.classList.remove("hidden");
     }
-    function getSinais(){
-      return Array.from(document.querySelectorAll(".chip.active")).map(c => c.dataset.key);
-    }
+
+    // Preenche selects de Ano e Letra
+    (function initAnoLetra(){
+      const anos = [4,5,6,7,8,9];
+      const letras = ['A','B','C','D'];
+      $("anoSel").innerHTML   = anos.map(a => `<option value="${a}">${a}º</option>`).join("");
+      $("letraSel").innerHTML = letras.map(l => `<option value="${l}">${l}</option>`).join("");
+    })();
 
     // Login/Logout Google
     $("login").onclick = async () => {
-      const here = location.href.split('#')[0].split('?')[0];
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: here }
+        options: { redirectTo: location.href.split('#')[0].split('?')[0] }
       });
       if (error) alert("Falha no login Google: " + error.message);
     };
-    $("logout").onclick = async () => {
-      await supabase.auth.signOut();
-      location.reload();
-    };
+    $("logout").onclick = async () => { await supabase.auth.signOut(); location.reload(); };
 
-    // Vincular turma por código
-    $("joinbtn").onclick = async () => {
-      const code = ($("joincode").value || "").trim();
-      if (!code) { showMsg("Informe o código da turma.", false); return; }
-      const { data, error } = await supabase.rpc("join_turma_by_code", { p_code: code });
-      if (error) { showMsg("Falha ao vincular: " + error.message, false); return; }
-      if (data !== "ok") {
-        const map = { not_authenticated: "Faça login pelo Google.", invalid_code: "Código inválido ou inativo." };
-        showMsg(map[data] || ("Erro: " + data), false);
+    // Vincular turma selecionada (4º–9º / A–D)
+    $("btn_vincular").onclick = async () => {
+      const ano = $("anoSel").value;
+      const letra = $("letraSel").value;
+      const turma = `${ano}º${letra}`;
+      const { data:{ session } } = await supabase.auth.getSession();
+      if (!session){ alert("Faça login primeiro."); return; }
+
+      const { error } = await supabase
+        .from("turmas_prof")
+        .insert([{ user_id: session.user.id, turma }]);
+
+      if (error) {
+        // Trata duplicado de forma amigável
+        if (error.code === '23505') {
+          alert(`Você já está vinculado à turma ${turma}.`);
+        } else {
+          alert("Erro ao vincular: " + error.message);
+        }
         return;
       }
-      showMsg("Turma vinculada com sucesso! Recarregando...", true);
-      setTimeout(()=> location.reload(), 800);
+      await refreshTurmas(session.user.id);
+      alert(`Turma ${turma} vinculada!`);
     };
+
+    // Carrega e renderiza turmas do professor (tags + select do formulário)
+    async function refreshTurmas(uid){
+      const { data, error } = await supabase
+        .from("turmas_prof").select("turma").eq("user_id", uid).order("turma");
+      if (error){ showMsg("Erro ao carregar turmas: " + error.message, false); return; }
+
+      const list = data || [];
+      // Tags
+      const tags = list.map(t => `<span class="pill">${t.turma}</span>`).join("") || '<span class="muted">Nenhuma</span>';
+      $("turmasTags").innerHTML = tags;
+
+      // Select do formulário
+      const sel = $("turma");
+      sel.innerHTML = '<option value="">Selecione...</option>' + list.map(t => `<option>${t.turma}</option>`).join("");
+
+      // Exibir formulário se tiver ao menos 1 turma
+      const has = list.length > 0;
+      $("form").classList.toggle("hidden", !has);
+    }
 
     async function boot(){
       const { data:{ session } } = await supabase.auth.getSession();
       if (!session){
         $("form").classList.add("hidden");
-        $("join").classList.add("hidden");
         $("logout").classList.add("hidden");
         $("login").classList.remove("hidden");
         $("who").textContent = "";
         return;
       }
-      $("who").textContent = "Logado: " + (session.user.email || session.user.id);
       $("logout").classList.remove("hidden");
       $("login").classList.add("hidden");
+      $("who").textContent = "Logado: " + (session.user.email || session.user.id);
 
-      const uid = session.user.id;
+      // garante perfil (teacher) na primeira vez; ignora erro de conflito
+      await supabase.from("perfis").insert({
+        user_id: session.user.id, papel: "teacher", email: session.user.email || ""
+      }).select().maybeSingle().catch(()=>{});
 
-      // papel (precisa ser teacher)
-      const { data: perfil, error: ePerfil } = await supabase
-        .from("perfis").select("papel").eq("user_id", uid).maybeSingle();
-      if (ePerfil){ showMsg("Erro ao carregar perfil: " + ePerfil.message, false); return; }
-      if (!perfil || perfil.papel !== "teacher"){
-        showMsg("Seu usuário não está autorizado como TEACHER.", false);
-        return;
-      }
+      await refreshTurmas(session.user.id);
 
-      // turmas do usuário
-      const { data: turmas, error: eTurmas } = await supabase
-        .from("turmas_prof").select("turma").eq("user_id", uid).order("turma");
-      if (eTurmas){ showMsg("Erro ao carregar turmas: " + eTurmas.message, false); return; }
-
-      if (!turmas || turmas.length === 0){
-        // mostrar card de auto-vínculo por código
-        $("join").classList.remove("hidden");
-        showMsg("Você ainda não tem turma vinculada. Informe o código recebido da gestão.", false);
-        return;
-      }
-
-      // preencher select de turmas e exibir formulário
-      const sel = $("turma");
-      sel.innerHTML = '<option value="">Selecione...</option>' + turmas.map(t => `<option>${t.turma}</option>`).join("");
-      $("form").classList.remove("hidden");
-
-      // envio do registro
       $("enviar").onclick = async () => {
         const turma = $("turma").value.trim();
         const professor = $("professor").value.trim();
@@ -213,27 +230,22 @@
         if (!turma || !professor || !aluno || !ocorrencia || !passo){
           showMsg("Preencha Turma, Professor, Aluno, Ocorrência e Passo.", false); return;
         }
-        if (professor.length > 50){ showMsg("Professor deve ter até 50 caracteres.", false); return; }
-        if (aluno.length > 50){ showMsg("Aluno deve ter até 50 caracteres.", false); return; }
 
         const { error } = await supabase.from("ocorrencias").insert([{
           turma, professor, aluno_codigo: aluno,
           ocorrencia, passo_protocolo: passo, sinais, observacoes,
-          created_by: uid
+          created_by: session.user.id
         }]);
 
         if (error){ showMsg("Falha ao enviar: " + error.message, false); return; }
 
-        $("aluno").value = "";
-        $("ocorrencia").value = "";
-        $("passo").value = "";
-        $("obs").value = "";
-        chips.forEach(c => c.classList.remove("active"));
+        $("aluno").value = ""; $("ocorrencia").value = "";
+        $("passo").value = ""; $("obs").value = "";
+        document.querySelectorAll(".chip.active").forEach(c=>c.classList.remove("active"));
         showMsg("Registro enviado com sucesso!");
       };
     }
 
-    // iniciar e observar mudanças de sessão
     boot();
     supabase.auth.onAuthStateChange(()=>boot());
   </script>
