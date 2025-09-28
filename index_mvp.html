@@ -146,9 +146,10 @@
     // Login/Logout Google
     $("login").onclick = async () => {
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo: location.href.split('#')[0].split('?')[0] }
-      });
+  provider: "google",
+  options: { redirectTo: location.href.split('#')[0].split('?')[0] }
+});
+
       if (error) alert("Falha no login Google: " + error.message);
     };
     $("logout").onclick = async () => { await supabase.auth.signOut(); location.reload(); };
