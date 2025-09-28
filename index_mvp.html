@@ -26,10 +26,10 @@
 </head>
 <body>
   <h1>Registro de Ocorrência — Professor</h1>
-  <p class="muted">Faça login com seu e-mail para carregar suas turmas e registrar ocorrências.</p>
+ <p class="muted">Faça login com o Google para carregar suas turmas e registrar ocorrências.</p>
 
   <div class="actions">
-    <button id="login">Entrar com e-mail</button>
+   <button id="login">Entrar com Google</button>
     <button id="logout" class="hidden">Sair</button>
     <span id="who" class="muted"></span>
   </div>
@@ -98,8 +98,8 @@
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
     // >>> coloque os valores do seu projeto
-    const SUPABASE_URL = "https://esm.sh/@supabase/supabase-js@2";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9....";
+   const SUPABASE_URL = "https://wzzryluesqxwyijievyj.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6enJ5bHVlc3F4d3lpamlldnlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg5OTk2NjYsImV4cCI6MjA3NDU3NTY2Nn0.aqT7PaKjj9QS547HEQ7EDyl8kvCIg4GrQJ4AXvjsG0k";
     // <<<
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -120,17 +120,17 @@
       return Array.from(document.querySelectorAll(".chip.active")).map(c => c.dataset.key);
     }
 
-    // ====== LOGIN / LOGOUT ======
-    $("login").onclick = async () => {
-      const email = prompt("Digite seu e-mail:");
-      if (!email) return;
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: { emailRedirectTo: window.location.href }
-      });
-      if (error) alert("Erro ao enviar link: " + error.message);
-      else alert("Verifique seu e-mail e clique no link para entrar.");
-    };
+   // ====== LOGIN / LOGOUT ======
+$("login").onclick = async () => {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: "https://gabriellipe.github.io/monitoramento-eletronicos/index_mvp.html"
+    }
+  });
+  if (error) alert("Falha no login Google: " + error.message);
+};
+
 
     $("logout").onclick = async () => {
       await supabase.auth.signOut();

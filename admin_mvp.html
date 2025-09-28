@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MVP – Painel (com login)</title>
+  <title>MVP – Painel (com login Google)</title>
   <style>
     body{font-family: system-ui, Arial, sans-serif; margin:24px; max-width:1000px}
     h1{font-size:1.4rem}
@@ -16,8 +16,9 @@
 </head>
 <body>
   <h1>MVP – Painel</h1>
-  <button id="login">Entrar com e-mail</button>
-  <p class="muted">⚠️ Agora requer login com e-mail (Magic Link) e policies configuradas.</p>
+  <button id="login">Entrar com Google</button>
+  <button id="logout" style="display:none">Sair</button>
+  <p class="muted">Requer login Google e policies configuradas. Atualiza em tempo real.</p>
 
   <div class="card">
     <table id="tbl">
@@ -34,24 +35,13 @@
 
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-    const SUPABASE_URL = "https://wzzryluesqxwyijievyj.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9....";
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // === LOGIN COM LINK MÁGICO ===
-    document.getElementById("login").onclick = async () => {
-      const email = prompt("Digite seu e-mail:");
-      if (!email) return;
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: { emailRedirectTo: window.location.href }
-      });
-      if (error) {
-        alert("Erro ao enviar link: " + error.message);
-      } else {
-        alert("Verifique seu e-mail e clique no link mágico para entrar!");
-      }
-    };
+    // >>> seu projeto
+    const SUPABASE_URL = "https://wzzryluesqxwyijievyj.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6enJ5bHVlc3F4d3lpamlldnlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg5OTk2NjYsImV4cCI6MjA3NDU3NTY2Nn0.aqT7PaKjj9QS547HEQ7EDyl8kvCIg4GrQJ4AXvjsG0k";
+    // <<<
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const tbody = document.querySelector("#tbl tbody");
     let currentData = [];
@@ -71,10 +61,45 @@
       `).join("");
     }
 
-    async function start(){
-      const { data, error } = await supabase.from("ocorrencias")
-        .select("*").order("created_at", { ascending: false }).limit(50);
-      if(error){ alert("Falha ao carregar. Verifique a policy de SELECT e Realtime."); return; }
+    // --- LOGIN GOOGLE ---
+    document.getElementById("login").onclick = async () => {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: 'https://gabriellipe.github.io/monitoramento-eletronicos/admin_mv.html'
+        }
+      });
+      if (error) alert("Falha no login Google: " + error.message);
+    };
+
+    document.getElementById("logout").onclick = async () => {
+      await supabase.auth.signOut();
+      location.reload();
+    };
+
+    async function loadData(){
+      // exige papel 'manager' para SELECT (conforme suas policies)
+      const { data:{ session } } = await supabase.auth.getSession();
+      if(!session){ return; }
+
+      const uid = session.user.id;
+      // checa papel
+      const { data: perfil, error: ePerfil } = await supabase
+        .from('perfis').select('papel').eq('user_id', uid).maybeSingle();
+
+      if (ePerfil){ alert("Erro ao verificar papel: " + ePerfil.message); return; }
+      if (!perfil || perfil.papel !== 'manager'){
+        alert("Acesso negado: seu usuário não é gestor (manager).");
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("ocorrencias")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if(error){ alert("Falha ao carregar. Verifique policy de SELECT e Realtime."); return; }
       currentData = data || [];
       render();
 
@@ -82,13 +107,22 @@
         .channel('ocorrencias')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'ocorrencias' }, payload => {
           const row = payload.new;
-          currentData.unshift(row);
-          currentData = currentData.slice(0,50);
-          render();
+          if (row){ currentData.unshift(row); currentData = currentData.slice(0,50); render(); }
         })
         .subscribe();
     }
-    start();
+
+    async function boot(){
+      const { data:{ session } } = await supabase.auth.getSession();
+      const logged = !!session;
+      document.getElementById("logout").style.display = logged ? 'inline-block' : 'none';
+      document.getElementById("login").style.display  = logged ? 'none' : 'inline-block';
+      if (logged) loadData();
+    }
+
+    // inicia e observa mudanças de sessão
+    boot();
+    supabase.auth.onAuthStateChange(() => boot());
   </script>
 </body>
 </html>
