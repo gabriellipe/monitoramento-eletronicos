@@ -268,3 +268,9 @@ function applyFilters() {
   // Implementar conforme necessidade
   // Exemplo: filtrar window.appData.infracoes e atualizar listas na tela
 }
+window.showLogin = showLogin;
+window.showScreen = showScreen;
+window.logout = logout;        // caso exista essa função
+window.limparFiltros = limparFiltros; // se existir no seu código
+window.fecharModal = fecharModal;
+window.showTab = showTab;
