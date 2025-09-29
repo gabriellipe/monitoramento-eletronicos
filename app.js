@@ -10,7 +10,6 @@ let currentUser = null;
 let currentUserType = null;
 let currentInfractionId = null;
 
-// Inicialização da aplicação
 document.addEventListener('DOMContentLoaded', initializeApp);
 
 async function initializeApp() {
@@ -51,13 +50,32 @@ function setupFormEvents() {
 
 function updateCurrentDateTime() {
   const campoDataHora = document.getElementById('dataHoraField');
-  if (campoDataHora) {
-    campoDataHora.value = new Date().toLocaleString();
-  }
+  if (campoDataHora) campoDataHora.value = new Date().toLocaleString();
 }
 
 function setupFilters() {
-  // Pode implementar se desejar lógica para filtros iniciais
+  const filtroProf = document.getElementById('filtro-professor');
+  if (filtroProf && window.appData.professores) {
+    filtroProf.innerHTML = '<option value="">Todos os professores</option>';
+    window.appData.professores.forEach(prof => {
+      const option = document.createElement('option');
+      option.value = prof.nome;
+      option.textContent = prof.nome;
+      filtroProf.appendChild(option);
+    });
+  }
+
+  const filtroTurma = document.getElementById('filtro-turma');
+  if (filtroTurma && window.appData.alunos) {
+    filtroTurma.innerHTML = '<option value="">Todas as turmas</option>';
+    const turmas = [...new Set(window.appData.alunos.map(a => a.turma))];
+    turmas.forEach(turma => {
+      const option = document.createElement('option');
+      option.value = turma;
+      option.textContent = turma;
+      filtroTurma.appendChild(option);
+    });
+  }
 }
 
 async function refreshInfractions() {
@@ -85,7 +103,27 @@ function calculateStatistics() {
 }
 
 function loadInfractionsList() {
-  // Implementar lista de infrações pendentes e histórico aqui
+  const listaPendentes = document.getElementById('infracoes-pendentes-list');
+  const listaHistorico = document.getElementById('infracoes-historico-list');
+  const infracoes = window.appData.infracoes || [];
+
+  if (listaPendentes) listaPendentes.innerHTML = '';
+  if (listaHistorico) listaHistorico.innerHTML = '';
+
+  const pendentes = infracoes.filter(i => i.status === 'pendente');
+  const resolvidas = infracoes.filter(i => i.status === 'resolvida');
+
+  pendentes.forEach(infracao => {
+    const div = document.createElement('div');
+    div.textContent = `${infracao.data} - ${infracao.aluno} (${infracao.turma}) - ${infracao.descricao}`;
+    listaPendentes.appendChild(div);
+  });
+
+  resolvidas.forEach(infracao => {
+    const div = document.createElement('div');
+    div.textContent = `${infracao.data} - ${infracao.aluno} (${infracao.turma}) - ${infracao.descricao}`;
+    listaHistorico.appendChild(div);
+  });
 }
 
 function updateTurmaField() {
@@ -227,8 +265,6 @@ async function handlePenalidadeSubmit(e) {
   showMessage('Penalidade aplicada com sucesso!', 'success');
 }
 
-// Outras funções para interface, exibir modais, mensagens e filtros devem ser adicionadas conforme necessidade
-
 function showMessage(msg, type = 'info') {
   const messageContainer = document.getElementById('message-container');
   messageContainer.textContent = msg;
@@ -265,8 +301,6 @@ function applyFilters() {
   // Implementar lógica para aplicar filtros e atualizar listas na tela
 }
 
-// Funções logout e limparFiltros para uso no HTML
-
 function logout() {
   currentUser = null;
   currentUserType = null;
@@ -280,7 +314,6 @@ function limparFiltros() {
   applyFilters();
 }
 
-// Expondo funções globalmente para uso no HTML
 window.showLogin = showLogin;
 window.showScreen = showScreen;
 window.logout = logout;
