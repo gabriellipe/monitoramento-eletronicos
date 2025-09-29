@@ -5,62 +5,73 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sistema de Infrações Disciplinares</title>
   <link rel="stylesheet" href="style.css" />
-  <!-- Supabase JS -->
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-  <!-- App -->
   <script defer src="app.js"></script>
 </head>
 <body>
   <div class="app">
-    <!-- Tela de Login (escolha de perfil) -->
+    <!-- Tela Inicial: Login/Registro -->
     <div id="login-screen" class="screen active">
       <div class="container">
         <div class="login-container">
           <div class="card">
             <div class="card__body">
               <h1 class="login-title">Sistema de Infrações Disciplinares</h1>
-              <p class="login-subtitle">Selecione seu perfil para acessar</p>
+              <p class="login-subtitle">Acesse com seu e-mail e senha</p>
 
-              <div class="profile-buttons">
-                <button class="btn btn--primary btn--lg profile-btn" onclick="showLogin('professor')">
-                  <span>👨‍🏫</span>
-                  Professor
-                </button>
-                <button class="btn btn--primary btn--lg profile-btn" onclick="showLogin('gestor')">
-                  <span>👩‍💼</span>
-                  Gestor
-                </button>
-              </div>
+              <form id="authForm" class="login-form">
+                <div class="form-group">
+                  <label class="form-label">E-mail</label>
+                  <input id="authEmail" type="email" class="form-control" placeholder="seuemail@escola.br" required />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Senha</label>
+                  <input id="authPassword" type="password" class="form-control" placeholder="••••••••" required />
+                </div>
+                <button type="submit" class="btn btn--primary btn--full-width">Entrar</button>
+              </form>
+
+              <div class="divider">ou</div>
+
+              <form id="signupForm" class="login-form">
+                <div class="form-group">
+                  <label class="form-label">Criar conta (primeiro acesso)</label>
+                  <input id="signupEmail" type="email" class="form-control" placeholder="seuemail@escola.br" required />
+                </div>
+                <div class="form-group">
+                  <input id="signupPassword" type="password" class="form-control" placeholder="Crie uma senha" required />
+                </div>
+                <button type="submit" class="btn btn--outline btn--full-width">Criar conta</button>
+              </form>
+
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Formulário de Login -->
-    <div id="login-form" class="screen hidden">
+    <!-- Tela de Solicitação de Acesso (Fluxo C) -->
+    <div id="request-access-screen" class="screen hidden">
       <div class="container">
         <div class="login-container">
           <div class="card">
             <div class="card__body">
-              <button class="btn btn--outline btn--sm back-btn" onclick="showScreen('login-screen')">
-                ← Voltar
-              </button>
+              <button class="btn btn--outline btn--sm back-btn" id="btnLogoutFromRequest">Sair</button>
+              <h2 class="login-form-title">Solicitar Acesso</h2>
+              <p class="text-secondary">
+                Seu usuário foi autenticado, mas ainda não tem permissão no sistema.<br/>
+                Informe seu nome e envie a solicitação. Um gestor aprovará seu acesso.
+              </p>
 
-              <h2 class="login-form-title">Login - <span id="login-type"></span></h2>
-
-              <form id="loginForm" class="login-form">
+              <form id="requestAccessForm" class="login-form">
                 <div class="form-group">
-                  <label class="form-label">Selecione seu nome:</label>
-                  <select class="form-control" id="userSelect" required>
-                    <option value="">Escolha...</option>
-                  </select>
+                  <label class="form-label">Seu nome completo</label>
+                  <input id="solicitanteNome" type="text" class="form-control" placeholder="Ex: Ana Souza" required />
                 </div>
-
-                <button type="submit" class="btn btn--primary btn--full-width">
-                  Entrar
-                </button>
+                <button type="submit" class="btn btn--primary btn--full-width">Enviar solicitação</button>
               </form>
+
+              <div id="requestStatus" class="text-secondary" style="margin-top:12px;"></div>
             </div>
           </div>
         </div>
@@ -75,7 +86,7 @@
             <h1>Sistema de Infrações - Professor</h1>
             <div class="header-actions">
               <span class="user-info" id="professor-name"></span>
-              <button class="btn btn--outline" onclick="logout()">Sair</button>
+              <button class="btn btn--outline" id="btnLogoutProfessor">Sair</button>
             </div>
           </div>
         </div>
@@ -143,7 +154,7 @@
             <h1>Sistema de Infrações - Gestão</h1>
             <div class="header-actions">
               <span class="user-info" id="gestor-name"></span>
-              <button class="btn btn--outline" onclick="logout()">Sair</button>
+              <button class="btn btn--outline" id="btnLogoutGestor">Sair</button>
             </div>
           </div>
         </div>
@@ -173,12 +184,10 @@
 
           <!-- Navegação -->
           <div class="nav-tabs">
-            <button class="nav-tab active" onclick="showTab('pendentes')">
-              Infrações Pendentes
-            </button>
-            <button class="nav-tab" onclick="showTab('historico')">
-              Histórico
-            </button>
+            <button class="nav-tab active" onclick="showTab('pendentes')">Infrações Pendentes</button>
+            <button class="nav-tab" onclick="showTab('historico')">Histórico</button>
+            <button class="nav-tab" onclick="showTab('aprovacoes')">Pendências de Acesso</button>
+            <button class="nav-tab" onclick="showTab('cadastros')">Cadastros</button>
           </div>
 
           <!-- Tab Pendentes -->
@@ -199,9 +208,7 @@
                   </div>
                 </div>
 
-                <div class="infractions-list" id="infracoes-pendentes-list">
-                  <!-- Infrações pendentes serão carregadas aqui -->
-                </div>
+                <div class="infractions-list" id="infracoes-pendentes-list"></div>
               </div>
             </div>
           </div>
@@ -211,9 +218,64 @@
             <div class="card">
               <div class="card__body">
                 <h3>Infrações Resolvidas</h3>
-                <div class="infractions-list" id="infracoes-historico-list">
-                  <!-- Histórico será carregado aqui -->
-                </div>
+                <div class="infractions-list" id="infracoes-historico-list"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab Aprovações -->
+          <div id="tab-aprovacoes" class="tab-content hidden">
+            <div class="card">
+              <div class="card__body">
+                <h3>Solicitações Pendentes</h3>
+                <div id="pendencias-list" class="infractions-list"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab Cadastros -->
+          <div id="tab-cadastros" class="tab-content hidden">
+            <div class="card">
+              <div class="card__body">
+                <h3>Cadastro de Alunos</h3>
+                <form id="alunoForm" class="form-inline" style="margin-bottom: 12px;">
+                  <input type="hidden" id="alunoIdEdit" value="">
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label class="form-label">Nome do aluno</label>
+                      <input id="alunoNome" type="text" class="form-control" placeholder="Ex: João Silva" required>
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Turma</label>
+                      <input id="alunoTurma" type="text" class="form-control" placeholder="Ex: 6º A" required>
+                    </div>
+                  </div>
+                  <div>
+                    <button type="submit" id="alunoSubmitBtn" class="btn btn--primary">Salvar</button>
+                    <button type="button" class="btn btn--outline" id="alunoCancelBtn" style="display:none;">Cancelar</button>
+                  </div>
+                </form>
+                <div id="alunosList" class="infractions-list"></div>
+              </div>
+            </div>
+
+            <div class="card" style="margin-top:16px;">
+              <div class="card__body">
+                <h3>Catálogo de Penalidades</h3>
+                <form id="penalidadeCatForm" class="form-inline" style="margin-bottom: 12px;">
+                  <input type="hidden" id="penIdEdit" value="">
+                  <div class="form-row">
+                    <div class="form-group" style="width:100%;">
+                      <label class="form-label">Título</label>
+                      <input id="penTitulo" type="text" class="form-control" placeholder="Ex: Advertência verbal" required>
+                    </div>
+                  </div>
+                  <div>
+                    <button type="submit" id="penSubmitBtn" class="btn btn--primary">Salvar</button>
+                    <button type="button" class="btn btn--outline" id="penCancelBtn" style="display:none;">Cancelar</button>
+                  </div>
+                </form>
+                <div id="penalidadesList" class="infractions-list"></div>
               </div>
             </div>
           </div>
@@ -235,9 +297,7 @@
           <form id="penalidadeForm">
             <div class="form-group">
               <label class="form-label">Selecione a Penalidade:</label>
-              <select class="form-control" id="penalidade-select" required>
-                <option value="">Escolha a penalidade...</option>
-              </select>
+              <select class="form-control" id="penalidade-select" required></select>
             </div>
 
             <div class="modal-actions">
