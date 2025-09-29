@@ -9,6 +9,12 @@ let currentUser = null
 let userRole = null
 let userEmail = null
 
+// Elementos das telas
+const loginScreen = document.getElementById('loginScreen')
+const signupScreen = document.getElementById('signupScreen')
+const setupScreen = document.getElementById('setupScreen')
+const appScreen = document.getElementById('appScreen')
+
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
     checkAuthState()
@@ -36,6 +42,7 @@ async function checkAuthState() {
             loadUserData()
         } else {
             // Usuário não tem perfil criado, redirecionar para setup
+            currentUser = user
             showSetup()
         }
     } else {
@@ -45,8 +52,24 @@ async function checkAuthState() {
 
 // Configurar event listeners
 function setupEventListeners() {
+    // Navegação entre login e cadastro
+    document.getElementById('showSignupLink')?.addEventListener('click', (e) => {
+        e.preventDefault()
+        showSignup()
+    })
+    
+    document.getElementById('showLoginLink')?.addEventListener('click', (e) => {
+        e.preventDefault()
+        showLogin()
+    })
+    
     // Login
     document.getElementById('loginBtn')?.addEventListener('click', handleLogin)
+    
+    // Cadastro
+    document.getElementById('signupBtn')?.addEventListener('click', handleSignup)
+    
+    // Logout
     document.getElementById('logoutBtn')?.addEventListener('click', handleLogout)
     
     // Setup do perfil
@@ -63,11 +86,21 @@ function setupEventListeners() {
     // Formulário de ocorrência
     document.getElementById('reportForm')?.addEventListener('submit', handleReportSubmit)
     
-    // Gestão de perfis (apenas para managers)
-    document.getElementById('manageProfileBtn')?.addEventListener('click', handleManageProfile)
+    // Criar usuário (apenas para managers)
+    document.getElementById('createUserBtn')?.addEventListener('click', handleCreateUser)
+    
+    // Atualizar usuário (apenas para managers)
+    document.getElementById('updateUserBtn')?.addEventListener('click', handleUpdateUser)
     
     // Gestão de turmas (apenas para managers)
     document.getElementById('manageTurmaBtn')?.addEventListener('click', handleManageTurma)
+    
+    // Filtros
+    document.getElementById('filterBtn')?.addEventListener('click', () => loadOccurrences())
+    document.getElementById('filterAllBtn')?.addEventListener('click', () => loadAllOccurrences())
+    
+    // Relatórios
+    document.getElementById('generateReportBtn')?.addEventListener('click', generateReport)
     
     // Resolução de ocorrências (apenas para managers)
     document.addEventListener('click', (e) => {
@@ -96,6 +129,40 @@ async function handleLogin() {
         alert('Erro no login: ' + error.message)
     } else {
         checkAuthState()
+    }
+}
+
+// Cadastro
+async function handleSignup() {
+    const email = document.getElementById('signupEmail')?.value
+    const password = document.getElementById('signupPassword')?.value
+    const confirmPassword = document.getElementById('signupConfirm')?.value
+    
+    if (!email || !password || !confirmPassword) {
+        alert('Por favor, preencha todos os campos')
+        return
+    }
+    
+    if (password !== confirmPassword) {
+        alert('As senhas não coincidem')
+        return
+    }
+    
+    if (password.length < 6) {
+        alert('A senha deve ter pelo menos 6 caracteres')
+        return
+    }
+    
+    const { data, error } = await supabase.auth.signUp({
+        email: email,
+        password: password
+    })
+    
+    if (error) {
+        alert('Erro no cadastro: ' + error.message)
+    } else {
+        alert('Cadastro realizado com sucesso! Verifique seu email para confirmação.')
+        showLogin()
     }
 }
 
@@ -133,12 +200,88 @@ async function handleSetupProfile() {
     }
 }
 
+// Criar usuário (apenas managers)
+async function handleCreateUser() {
+    if (userRole !== 'manager') {
+        alert('Apenas gestores podem criar usuários')
+        return
+    }
+    
+    const email = document.getElementById('newUserEmail')?.value
+    const password = document.getElementById('newUserPassword')?.value
+    const papel = document.getElementById('newUserRole')?.value
+    
+    if (!email || !password || !papel) {
+        alert('Por favor, preencha todos os campos')
+        return
+    }
+    
+    // Criar usuário na autenticação
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: email,
+        password: password
+    })
+    
+    if (authError) {
+        alert('Erro ao criar usuário: ' + authError.message)
+        return
+    }
+    
+    // Criar perfil no banco
+    if (authData.user) {
+        const { error: profileError } = await supabase
+            .from('perfis')
+            .insert({
+                user_id: authData.user.id,
+                email: email,
+                papel: papel
+            })
+        
+        if (profileError) {
+            alert('Usuário criado mas erro ao definir perfil: ' + profileError.message)
+        } else {
+            alert('Usuário criado com sucesso!')
+            document.getElementById('createUserForm').reset()
+            loadManagementData()
+        }
+    }
+}
+
+// Atualizar usuário (apenas managers)
+async function handleUpdateUser() {
+    if (userRole !== 'manager') {
+        alert('Apenas gestores podem atualizar usuários')
+        return
+    }
+    
+    const email = document.getElementById('updateUserEmail')?.value
+    const papel = document.getElementById('updateUserRole')?.value
+    
+    if (!email || !papel) {
+        alert('Por favor, preencha todos os campos')
+        return
+    }
+    
+    const { error } = await supabase
+        .from('perfis')
+        .update({ papel: papel })
+        .eq('email', email)
+    
+    if (error) {
+        alert('Erro ao atualizar usuário: ' + error.message)
+    } else {
+        alert('Usuário atualizado com sucesso!')
+        document.getElementById('updateUserForm').reset()
+        loadManagementData()
+    }
+}
+
 // Carregar dados do usuário
 async function loadUserData() {
     // Atualizar interface com informações do usuário
     const userInfoEl = document.getElementById('userInfo')
     if (userInfoEl) {
-        userInfoEl.textContent = `${userEmail} (${userRole})`
+        userInfoEl.textContent = `${userEmail} (${userRole === 'manager' ? 'Gestor' : 'Professor'})`
     }
     
     // Carregar turmas do professor
@@ -151,7 +294,9 @@ async function loadUserData() {
     
     // Se for manager, carregar dados de gestão
     if (userRole === 'manager') {
+        await loadAllOccurrences()
         await loadManagementData()
+        await updateStats()
     }
 }
 
@@ -162,22 +307,31 @@ async function loadTeacherTurmas() {
         .select('turma')
         .eq('user_id', currentUser.id)
     
-    const turmaSelect = document.getElementById('turma')
-    if (turmaSelect) {
-        turmaSelect.innerHTML = '<option value="">Selecione uma turma</option>'
-        
-        if (turmas) {
-            turmas.forEach(turma => {
-                const option = document.createElement('option')
-                option.value = turma.turma
-                option.textContent = turma.turma
-                turmaSelect.appendChild(option)
-            })
+    const turmaSelects = ['turma', 'turmaFilter']
+    
+    turmaSelects.forEach(selectId => {
+        const turmaSelect = document.getElementById(selectId)
+        if (turmaSelect) {
+            const currentValue = turmaSelect.value
+            turmaSelect.innerHTML = selectId === 'turmaFilter' ? 
+                '<option value="">Todas as Turmas</option>' :
+                '<option value="">Selecione uma turma</option>'
+            
+            if (turmas) {
+                turmas.forEach(turma => {
+                    const option = document.createElement('option')
+                    option.value = turma.turma
+                    option.textContent = turma.turma
+                    turmaSelect.appendChild(option)
+                })
+            }
+            
+            if (currentValue) turmaSelect.value = currentValue
         }
-    }
+    })
 }
 
-// Carregar ocorrências
+// Carregar ocorrências do usuário
 async function loadOccurrences() {
     let query = supabase
         .from('ocorrencias')
@@ -189,14 +343,44 @@ async function loadOccurrences() {
         query = query.eq('professor_email', userEmail)
     }
     
+    // Aplicar filtros
+    const statusFilter = document.getElementById('statusFilter')?.value
+    const turmaFilter = document.getElementById('turmaFilter')?.value
+    
+    if (statusFilter) query = query.eq('status', statusFilter)
+    if (turmaFilter) query = query.eq('turma', turmaFilter)
+    
     const { data: ocorrencias } = await query
     
-    displayOccurrences(ocorrencias || [])
+    displayOccurrences(ocorrencias || [], 'occurrencesList')
+}
+
+// Carregar todas as ocorrências (apenas managers)
+async function loadAllOccurrences() {
+    if (userRole !== 'manager') return
+    
+    let query = supabase
+        .from('ocorrencias')
+        .select('*')
+        .order('data_ocorrencia', { ascending: false })
+    
+    // Aplicar filtros
+    const statusFilter = document.getElementById('allStatusFilter')?.value
+    const turmaFilter = document.getElementById('allTurmaFilter')?.value
+    const professorFilter = document.getElementById('professorFilter')?.value
+    
+    if (statusFilter) query = query.eq('status', statusFilter)
+    if (turmaFilter) query = query.eq('turma', turmaFilter)
+    if (professorFilter) query = query.eq('professor_email', professorFilter)
+    
+    const { data: ocorrencias } = await query
+    
+    displayOccurrences(ocorrencias || [], 'allOccurrencesList', true)
 }
 
 // Exibir ocorrências na lista
-function displayOccurrences(ocorrencias) {
-    const container = document.getElementById('occurrencesList')
+function displayOccurrences(ocorrencias, containerId, showResolveButton = false) {
+    const container = document.getElementById(containerId)
     if (!container) return
     
     if (ocorrencias.length === 0) {
@@ -218,7 +402,7 @@ function displayOccurrences(ocorrencias) {
                 <p><strong>Descrição:</strong> ${occ.descricao}</p>
                 ${occ.penalidade ? `<p><strong>Penalidade:</strong> ${occ.penalidade}</p>` : ''}
                 ${occ.observacoes_gestor ? `<p><strong>Observações do Gestor:</strong> ${occ.observacoes_gestor}</p>` : ''}
-                ${userRole === 'manager' && occ.status === 'pendente' ? 
+                ${showResolveButton && userRole === 'manager' && occ.status === 'pendente' ? 
                     `<button class="resolve-btn" data-id="${occ.id}">Resolver</button>` : ''}
             </div>
         </div>
@@ -250,6 +434,10 @@ async function handleReportSubmit(e) {
         alert('Ocorrência registrada com sucesso!')
         e.target.reset()
         loadOccurrences()
+        if (userRole === 'manager') {
+            loadAllOccurrences()
+            updateStats()
+        }
     }
 }
 
@@ -275,11 +463,15 @@ async function handleResolveOccurrence(occurrenceId) {
     } else {
         alert('Ocorrência resolvida com sucesso!')
         loadOccurrences()
+        loadAllOccurrences()
+        updateStats()
     }
 }
 
 // Carregar dados de gestão (apenas para managers)
 async function loadManagementData() {
+    if (userRole !== 'manager') return
+    
     // Carregar todos os perfis
     const { data: perfis } = await supabase
         .from('perfis')
@@ -295,6 +487,18 @@ async function loadManagementData() {
         .order('turma')
     
     displayTurmas(turmas || [])
+    
+    // Preencher filtro de professores
+    const professorFilter = document.getElementById('professorFilter')
+    if (professorFilter && perfis) {
+        professorFilter.innerHTML = '<option value="">Todos os Professores</option>'
+        perfis.filter(p => p.papel === 'teacher').forEach(professor => {
+            const option = document.createElement('option')
+            option.value = professor.email
+            option.textContent = professor.email
+            professorFilter.appendChild(option)
+        })
+    }
 }
 
 // Exibir perfis (apenas para managers)
@@ -302,13 +506,16 @@ function displayPerfis(perfis) {
     const container = document.getElementById('perfisList')
     if (!container) return
     
-    container.innerHTML = perfis.map(perfil => `
-        <div class="perfil-card">
-            <h4>${perfil.email}</h4>
-            <p>Papel: ${perfil.papel}</p>
-            <p>Criado em: ${new Date(perfil.created_at).toLocaleDateString('pt-BR')}</p>
-        </div>
-    `).join('')
+    container.innerHTML = `
+        <h3>Usuários do Sistema (${perfis.length})</h3>
+        ${perfis.map(perfil => `
+            <div class="perfil-card">
+                <h4>${perfil.email}</h4>
+                <p><strong>Papel:</strong> ${perfil.papel === 'manager' ? 'Gestor' : 'Professor'}</p>
+                <p><strong>Criado em:</strong> ${new Date(perfil.created_at).toLocaleDateString('pt-BR')}</p>
+            </div>
+        `).join('')}
+    `
 }
 
 // Exibir turmas (apenas para managers)
@@ -316,53 +523,32 @@ function displayTurmas(turmas) {
     const container = document.getElementById('turmasList')
     if (!container) return
     
-    container.innerHTML = turmas.map(turma => `
-        <div class="turma-card">
-            <h4>${turma.turma}</h4>
-            <p>Professor: ${turma.perfis.email}</p>
-            <p>Vinculado em: ${new Date(turma.created_at).toLocaleDateString('pt-BR')}</p>
-        </div>
-    `).join('')
-}
-
-// Gerenciar perfil (apenas managers)
-async function handleManageProfile() {
-    const email = prompt('Email do usuário:')
-    const papel = prompt('Papel (teacher/manager):')
-    
-    if (!email || !papel) return
-    
-    // Primeiro, verificar se o usuário existe na tabela auth.users
-    const { data: users } = await supabase.auth.admin.listUsers()
-    const user = users.users.find(u => u.email === email)
-    
-    if (!user) {
-        alert('Usuário não encontrado. O usuário precisa se registrar primeiro.')
-        return
-    }
-    
-    const { error } = await supabase
-        .from('perfis')
-        .upsert({
-            user_id: user.id,
-            email: email,
-            papel: papel
-        })
-    
-    if (error) {
-        alert('Erro ao gerenciar perfil: ' + error.message)
-    } else {
-        alert('Perfil atualizado com sucesso!')
-        loadManagementData()
-    }
+    container.innerHTML = `
+        <h3>Turmas Vinculadas (${turmas.length})</h3>
+        ${turmas.map(turma => `
+            <div class="turma-card">
+                <h4>${turma.turma}</h4>
+                <p><strong>Professor:</strong> ${turma.perfis.email}</p>
+                <p><strong>Vinculado em:</strong> ${new Date(turma.created_at).toLocaleDateString('pt-BR')}</p>
+            </div>
+        `).join('')}
+    `
 }
 
 // Gerenciar turma (apenas managers)
 async function handleManageTurma() {
-    const email = prompt('Email do professor:')
-    const turma = prompt('Nome da turma:')
+    if (userRole !== 'manager') {
+        alert('Apenas gestores podem gerenciar turmas')
+        return
+    }
     
-    if (!email || !turma) return
+    const email = document.getElementById('professorEmail')?.value
+    const turma = document.getElementById('turmaNome')?.value
+    
+    if (!email || !turma) {
+        alert('Por favor, preencha todos os campos')
+        return
+    }
     
     // Buscar o user_id baseado no email
     const { data: perfil } = await supabase
@@ -373,7 +559,7 @@ async function handleManageTurma() {
         .single()
     
     if (!perfil) {
-        alert('Professor não encontrado.')
+        alert('Professor não encontrado ou email não é de um professor.')
         return
     }
     
@@ -388,30 +574,120 @@ async function handleManageTurma() {
         alert('Erro ao vincular turma: ' + error.message)
     } else {
         alert('Turma vinculada com sucesso!')
+        document.getElementById('turmaForm').reset()
         loadManagementData()
+    }
+}
+
+// Atualizar estatísticas (apenas managers)
+async function updateStats() {
+    if (userRole !== 'manager') return
+    
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    // Ocorrências hoje
+    const { count: todayCount } = await supabase
+        .from('ocorrencias')
+        .select('*', { count: 'exact', head: true })
+        .gte('data_ocorrencia', today.toISOString())
+    
+    // Pendentes
+    const { count: pendingCount } = await supabase
+        .from('ocorrencias')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pendente')
+    
+    // Resolvidas
+    const { count: resolvedCount } = await supabase
+        .from('ocorrencias')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'resolvida')
+    
+    // Usuários ativos
+    const { count: usersCount } = await supabase
+        .from('perfis')
+        .select('*', { count: 'exact', head: true })
+    
+    // Atualizar interface
+    document.getElementById('todayCount').textContent = todayCount || 0
+    document.getElementById('pendingCount').textContent = pendingCount || 0
+    document.getElementById('resolvedCount').textContent = resolvedCount || 0
+    document.getElementById('totalUsersCount').textContent = usersCount || 0
+}
+
+// Gerar relatório
+async function generateReport() {
+    if (userRole !== 'manager') return
+    
+    const startDate = document.getElementById('reportStartDate')?.value
+    const endDate = document.getElementById('reportEndDate')?.value
+    
+    if (!startDate || !endDate) {
+        alert('Por favor, selecione as datas para o relatório')
+        return
+    }
+    
+    let query = supabase
+        .from('ocorrencias')
+        .select('*')
+        .gte('data_ocorrencia', startDate)
+        .lte('data_ocorrencia', endDate + 'T23:59:59')
+        .order('data_ocorrencia', { ascending: false })
+    
+    const { data: reportData } = await query
+    
+    const reportResults = document.getElementById('reportResults')
+    if (reportResults && reportData) {
+        const totalOcorrencias = reportData.length
+        const pendentes = reportData.filter(o => o.status === 'pendente').length
+        const resolvidas = reportData.filter(o => o.status === 'resolvida').length
+        
+        const tiposOcorrencia = {}
+        reportData.forEach(o => {
+            tiposOcorrencia[o.tipo_ocorrencia] = (tiposOcorrencia[o.tipo_ocorrencia] || 0) + 1
+        })
+        
+        reportResults.innerHTML = `
+            <h3>Relatório do período: ${new Date(startDate).toLocaleDateString('pt-BR')} a ${new Date(endDate).toLocaleDateString('pt-BR')}</h3>
+            <div class="report-summary">
+                <p><strong>Total de ocorrências:</strong> ${totalOcorrencias}</p>
+                <p><strong>Pendentes:</strong> ${pendentes}</p>
+                <p><strong>Resolvidas:</strong> ${resolvidas}</p>
+            </div>
+            <h4>Tipos de ocorrência mais comuns:</h4>
+            <ul>
+                ${Object.entries(tiposOcorrencia)
+                    .sort(([,a], [,b]) => b - a)
+                    .map(([tipo, count]) => `<li>${tipo}: ${count}</li>`)
+                    .join('')}
+            </ul>
+        `
     }
 }
 
 // Mostrar tela de login
 function showLogin() {
-    const loginScreen = document.getElementById('loginScreen')
-    const setupScreen = document.getElementById('setupScreen')
-    const appScreen = document.getElementById('appScreen')
-    
-    if (loginScreen) loginScreen.style.display = 'block'
-    if (setupScreen) setupScreen.style.display = 'none'
-    if (appScreen) appScreen.style.display = 'none'
+    loginScreen.style.display = 'block'
+    signupScreen.style.display = 'none'
+    setupScreen.style.display = 'none'
+    appScreen.style.display = 'none'
+}
+
+// Mostrar tela de cadastro
+function showSignup() {
+    loginScreen.style.display = 'none'
+    signupScreen.style.display = 'block'
+    setupScreen.style.display = 'none'
+    appScreen.style.display = 'none'
 }
 
 // Mostrar tela de setup
 function showSetup() {
-    const loginScreen = document.getElementById('loginScreen')
-    const setupScreen = document.getElementById('setupScreen')
-    const appScreen = document.getElementById('appScreen')
-    
-    if (loginScreen) loginScreen.style.display = 'none'
-    if (setupScreen) setupScreen.style.display = 'block'
-    if (appScreen) appScreen.style.display = 'none'
+    loginScreen.style.display = 'none'
+    signupScreen.style.display = 'none'
+    setupScreen.style.display = 'block'
+    appScreen.style.display = 'none'
     
     // Preencher email do usuário logado
     const setupEmail = document.getElementById('setupEmail')
@@ -422,22 +698,19 @@ function showSetup() {
 
 // Mostrar aplicação principal
 function showApp() {
-    const loginScreen = document.getElementById('loginScreen')
-    const setupScreen = document.getElementById('setupScreen')
-    const appScreen = document.getElementById('appScreen')
+    loginScreen.style.display = 'none'
+    signupScreen.style.display = 'none'
+    setupScreen.style.display = 'none'
+    appScreen.style.display = 'block'
     
-    if (loginScreen) loginScreen.style.display = 'none'
-    if (setupScreen) setupScreen.style.display = 'none'
-    if (appScreen) appScreen.style.display = 'block'
-    
-    // Mostrar/ocultar abas baseado no papel do usuário
-    const managerTabs = document.querySelectorAll('.manager-only')
-    managerTabs.forEach(tab => {
-        tab.style.display = userRole === 'manager' ? 'block' : 'none'
+    // Mostrar/ocultar elementos baseado no papel do usuário
+    const managerElements = document.querySelectorAll('.manager-only')
+    managerElements.forEach(el => {
+        el.style.display = userRole === 'manager' ? 'block' : 'none'
     })
     
     // Mostrar primeira aba apropriada
-    showTab(userRole === 'teacher' ? 'report' : 'occurrences')
+    showTab(userRole === 'teacher' ? 'report' : 'management')
 }
 
 // Mostrar aba específica
@@ -475,6 +748,10 @@ function setupRealTimeSubscriptions() {
             (payload) => {
                 console.log('Mudança em ocorrências:', payload)
                 loadOccurrences()
+                if (userRole === 'manager') {
+                    loadAllOccurrences()
+                    updateStats()
+                }
             }
         )
         .subscribe()
@@ -482,5 +759,5 @@ function setupRealTimeSubscriptions() {
 
 // Inicializar subscriptions quando o app carregar
 document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(setupRealTimeSubscriptions, 1000)
+    setTimeout(setupRealTimeSubscriptions, 2000)
 })
