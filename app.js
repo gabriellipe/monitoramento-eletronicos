@@ -61,27 +61,27 @@ function setupFilters() {
 }
 
 async function refreshInfractions() {
-  const { data: infracoes } = await supabase.from('infracoes').select('*');
-  window.appData.infracoes = infracoes;
+  const { data: ocorrencia } = await supabase.from('ocorrencia').select('*');
+  window.appData.ocorrencia = ocorrencias;
   calculateStatistics();
   loadInfractionsList();
 }
 
 function calculateStatistics() {
   const hoje = new Date().toISOString().split('T')[0];
-  const infracoes = window.appData.infracoes || [];
+  const ocorrencia = window.appData.ocorrencia || [];
 
-  const infracoesHoje = infracoes.filter(i => i.data === hoje).length;
+  const ocorrenciaHoje = ocorrencia.filter(i => i.data === hoje).length;
   const semana = new Date();
   semana.setDate(semana.getDate() - 7);
-  const infracoesSemana = infracoes.filter(i => new Date(i.data) >= semana).length;
-  const infracoesPendentes = infracoes.filter(i => i.status === 'pendente').length;
-  const infracoesResolvidas = infracoes.filter(i => i.status === 'resolvida').length;
+  const ocorrenciaSemana = ocorrencia.filter(i => new Date(i.data) >= semana).length;
+  const ocorrenciaPendentes = ocorrencia.filter(i => i.status === 'pendente').length;
+  const ocorrenciaResolvidas = ocorrencia.filter(i => i.status === 'resolvida').length;
 
-  document.getElementById('infracoes-hoje').textContent = infracoesHoje;
-  document.getElementById('infracoes-semana').textContent = infracoesSemana;
-  document.getElementById('infracoes-pendentes').textContent = infracoesPendentes;
-  document.getElementById('infracoes-resolvidas').textContent = infracoesResolvidas;
+  document.getElementById('ocorrencia-hoje').textContent = ocorrenciaHoje;
+  document.getElementById('ocorrencia-semana').textContent = ocorrenciaSemana;
+  document.getElementById('ocorrencia-pendentes').textContent = ocorrenciaPendentes;
+  document.getElementById('ocorrencia-resolvidas').textContent = ocorrenciaResolvidas;
 }
 
 function loadInfractionsList() {
@@ -194,7 +194,7 @@ async function handleInfracaoSubmit(e) {
     status: 'pendente'
   };
 
-  await supabase.from('infracoes').insert(newInfraction);
+  await supabase.from('ocorrencia').insert(newInfraction);
   await refreshInfractions();
   e.target.reset();
   updateCurrentDateTime();
@@ -218,7 +218,7 @@ async function handlePenalidadeSubmit(e) {
   if (!penalidade) return showMessage('Por favor, selecione uma penalidade', 'error');
 
   await supabase
-    .from('infracoes')
+    .from('ocorrencia')
     .update({ status: 'resolvida', penalidade, dataResolucao: new Date().toISOString().split('T')[0] })
     .eq('id', currentInfractionId);
 
