@@ -1,322 +1,211 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-// 🚨 NÃO EDITAR ABAIXO DESTA LINHA 🚨
-const SUPABASE_URL = 'https://wzzryluesqxwyijievyj.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6enJ5bHVlc3F4d3lpamlldnlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg5OTk2NjYsImV4cCI6MjA3NDU3NTY2Nn0.aqT7PaKjj9QS547HEQ7EDyl8kvCIg4GrQJ4AXvjsG0k';
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-// 🚨 NÃO EDITAR ACIMA DESTA LINHA 🚨
+const SUPABASE_URL  = 'https://wzzryluesqxwyijievyj.supabase.co';
+const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6enJ5bHVlc3F4d3lpamlldnlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg5OTk2NjYsImV4cCI6MjA3NDU3NTY2Nn0.aqT7PaKjj9QS547HEQ7EDyl8kvCIg4GrQJ4AXvjsG0k';
+const supabase      = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = null;
 let currentUserType = null;
 let currentInfractionId = null;
 
-document.addEventListener('DOMContentLoaded', initializeApp);
+document.addEventListener('DOMContentLoaded', init);
 
-async function initializeApp() {
-  await loadInitialData();
-  setupFormEvents();
-  updateCurrentDateTime();
-  setupFilters();
-  calculateStatistics();
+async function init() {
+  await loadData();
+  bindEvents();
+  updateTime();
+  fillFilters();
+  updateStats();
 }
 
-async function loadInitialData() {
-  const { data: professores } = await supabase.from('professores').select('*');
-  const { data: alunos } = await supabase.from('alunos').select('*');
-  const { data: tiposPenalidade } = await supabase.from('tipos_penalidade').select('*');
-  const { data: infracoes } = await supabase.from('infracoes').select('*');
-
-  window.appData = { professores, alunos, tiposPenalidade, infracoes };
+async function loadData() {
+  const { data: professores }   = await supabase.from('professores').select('*');
+  const { data: alunos }        = await supabase.from('alunos').select('*');
+  const { data: tipos }         = await supabase.from('tipos_penalidade').select('*');
+  const { data: infracoes }     = await supabase.from('infracoes').select('*');
+  window.appData = { professores, alunos, tipos, infracoes };
 }
 
-function setupFormEvents() {
-  const loginForm = document.getElementById('loginForm');
-  if (loginForm) loginForm.addEventListener('submit', handleLogin);
+function bindEvents() {
+  document.getElementById('loginForm')      ?.addEventListener('submit', handleLogin);
+  document.getElementById('infracaoForm')   ?.addEventListener('submit', handleInfraction);
+  document.getElementById('penalidadeForm') ?.addEventListener('submit', handlePenalty);
+  document.getElementById('alunoSelect')    ?.addEventListener('change', updateTurma);
 
-  const infracaoForm = document.getElementById('infracaoForm');
-  if (infracaoForm) infracaoForm.addEventListener('submit', handleInfracaoSubmit);
-
-  const penalidadeForm = document.getElementById('penalidadeForm');
-  if (penalidadeForm) penalidadeForm.addEventListener('submit', handlePenalidadeSubmit);
-
-  const alunoSelect = document.getElementById('alunoSelect');
-  if (alunoSelect) alunoSelect.addEventListener('change', updateTurmaField);
-
-  ['filtro-professor', 'filtro-turma', 'filtro-data'].forEach(filtroId => {
-    const filtro = document.getElementById(filtroId);
-    if (filtro) filtro.addEventListener('change', applyFilters);
+  ['filtro-professor','filtro-turma','filtro-data'].forEach(id=>{
+    document.getElementById(id)?.addEventListener('change', applyFilters);
   });
 }
 
-function updateCurrentDateTime() {
-  const campoDataHora = document.getElementById('dataHoraField');
-  if (campoDataHora) campoDataHora.value = new Date().toLocaleString();
-}
-
-function setupFilters() {
-  const filtroProf = document.getElementById('filtro-professor');
-  if (filtroProf && window.appData.professores) {
-    filtroProf.innerHTML = '<option value="">Todos os professores</option>';
-    window.appData.professores.forEach(prof => {
-      const option = document.createElement('option');
-      option.value = prof.nome;
-      option.textContent = prof.nome;
-      filtroProf.appendChild(option);
-    });
-  }
-
-  const filtroTurma = document.getElementById('filtro-turma');
-  if (filtroTurma && window.appData.alunos) {
-    filtroTurma.innerHTML = '<option value="">Todas as turmas</option>';
-    const turmas = [...new Set(window.appData.alunos.map(a => a.turma))];
-    turmas.forEach(turma => {
-      const option = document.createElement('option');
-      option.value = turma;
-      option.textContent = turma;
-      filtroTurma.appendChild(option);
-    });
-  }
-}
-
-async function refreshInfractions() {
-  const { data: infracoes } = await supabase.from('infracoes').select('*');
-  window.appData.infracoes = infracoes;
-  calculateStatistics();
-  loadInfractionsList();
-}
-
-function calculateStatistics() {
-  const hoje = new Date().toISOString().split('T')[0];
-  const infracoes = window.appData.infracoes || [];
-
-  const infracoesHoje = infracoes.filter(i => i.data === hoje).length;
-  const semana = new Date();
-  semana.setDate(semana.getDate() - 7);
-  const infracoesSemana = infracoes.filter(i => new Date(i.data) >= semana).length;
-  const infracoesPendentes = infracoes.filter(i => i.status === 'pendente').length;
-  const infracoesResolvidas = infracoes.filter(i => i.status === 'resolvida').length;
-
-  document.getElementById('infracoes-hoje').textContent = infracoesHoje;
-  document.getElementById('infracoes-semana').textContent = infracoesSemana;
-  document.getElementById('infracoes-pendentes').textContent = infracoesPendentes;
-  document.getElementById('infracoes-resolvidas').textContent = infracoesResolvidas;
-}
-
-function loadInfractionsList() {
-  const listaPendentes = document.getElementById('infracoes-pendentes-list');
-  const listaHistorico = document.getElementById('infracoes-historico-list');
-  const infracoes = window.appData.infracoes || [];
-
-  if (listaPendentes) listaPendentes.innerHTML = '';
-  if (listaHistorico) listaHistorico.innerHTML = '';
-
-  const pendentes = infracoes.filter(i => i.status === 'pendente');
-  const resolvidas = infracoes.filter(i => i.status === 'resolvida');
-
-  pendentes.forEach(infracao => {
-    const div = document.createElement('div');
-    div.textContent = `${infracao.data} - ${infracao.aluno} (${infracao.turma}) - ${infracao.descricao}`;
-    listaPendentes.appendChild(div);
-  });
-
-  resolvidas.forEach(infracao => {
-    const div = document.createElement('div');
-    div.textContent = `${infracao.data} - ${infracao.aluno} (${infracao.turma}) - ${infracao.descricao}`;
-    listaHistorico.appendChild(div);
-  });
-}
-
-function updateTurmaField() {
-  const alunoSelect = document.getElementById('alunoSelect');
-  const turmaField = document.getElementById('turmaField');
-  if (!alunoSelect || !turmaField) return;
-
-  const selectedOption = alunoSelect.options[alunoSelect.selectedIndex];
-  const turma = selectedOption ? selectedOption.dataset.turma : '';
-  turmaField.value = turma;
-}
-
-function showScreen(screenId) {
-  document.querySelectorAll('.screen').forEach(screen => {
-    screen.classList.add('hidden');
-    screen.classList.remove('active');
-  });
-  const screen = document.getElementById(screenId);
-  if (screen) {
-    screen.classList.remove('hidden');
-    screen.classList.add('active');
-  }
-}
-
-function showLogin(userType) {
-  if (!window.appData || !window.appData.professores) {
-    showMessage('Os dados ainda estão carregando, tente novamente.', 'error');
-    return;
-  }
-
-  currentUserType = userType;
-  const loginTypeSpan = document.getElementById('login-type');
-  loginTypeSpan.textContent = userType === 'professor' ? 'Professor' : 'Gestor';
-
-  const userSelect = document.getElementById('userSelect');
-  userSelect.innerHTML = '<option value="">Escolha...</option>';
-
-  if (userType === 'professor') {
-    window.appData.professores.forEach(prof => {
-      const option = document.createElement('option');
-      option.value = prof.id;
-      option.textContent = prof.nome;
-      userSelect.appendChild(option);
+/* ------------------------------ Login ------------------------------ */
+function showLogin(type){
+  if(!window.appData?.professores) return;
+  currentUserType = type;
+  document.getElementById('login-type').textContent = type==='professor'?'Professor':'Gestor';
+  const sel = document.getElementById('userSelect');
+  sel.innerHTML = '';
+  if(type==='professor'){
+    window.appData.professores.forEach(p=>{
+      sel.innerHTML += `<option value="${p.id}">${p.nome}</option>`;
     });
   } else {
-    const option = document.createElement('option');
-    option.value = 'gestor';
-    option.textContent = 'Coordenação Pedagógica';
-    userSelect.appendChild(option);
+    sel.innerHTML = `<option value="gestor">Coordenação Pedagógica</option>`;
   }
-
   showScreen('login-form');
 }
+window.showLogin = showLogin;
 
-async function handleLogin(e) {
+function handleLogin(e){
   e.preventDefault();
-  const selectedValue = document.getElementById('userSelect').value;
-  if (!selectedValue) return showMessage('Por favor, selecione um usuário', 'error');
-
-  if (currentUserType === 'professor') {
-    currentUser = window.appData.professores.find(p => p.id == selectedValue);
+  const id = document.getElementById('userSelect').value;
+  if(!id) return;
+  if(currentUserType==='professor'){
+    currentUser = window.appData.professores.find(p=>p.id==id);
     document.getElementById('professor-name').textContent = currentUser.nome;
     document.getElementById('professorField').value = currentUser.nome;
-    loadProfessorSelectOptions();
+    fillAlunos();
     showScreen('professor-screen');
   } else {
-    currentUser = { nome: 'Coordenação Pedagógica' };
+    currentUser = { nome:'Coordenação Pedagógica'};
     document.getElementById('gestor-name').textContent = currentUser.nome;
-    loadGestorSelectOptions();
+    fillPenalidades();
     showScreen('gestor-screen');
   }
-
-  showMessage('Login realizado com sucesso!', 'success');
+  showMsg('Login realizado!','success');
 }
+function logout(){ currentUser=null; showScreen('login-screen'); }
+window.logout = logout;
 
-function loadProfessorSelectOptions() {
-  const alunoSelect = document.getElementById('alunoSelect');
-  alunoSelect.innerHTML = '<option value="">Selecione o aluno...</option>';
-  window.appData.alunos.forEach(aluno => {
-    const option = document.createElement('option');
-    option.value = aluno.id;
-    option.textContent = aluno.nome;
-    option.dataset.turma = aluno.turma;
-    alunoSelect.appendChild(option);
+/* --------------------------- Professor ----------------------------- */
+function fillAlunos(){
+  const sel = document.getElementById('alunoSelect');
+  sel.innerHTML='<option value="">Selecione</option>';
+  window.appData.alunos.forEach(a=>{
+    sel.innerHTML += `<option value="${a.id}" data-turma="${a.turma}">${a.nome}</option>`;
   });
 }
-
-async function handleInfracaoSubmit(e) {
+function updateTurma(){
+  const sel   = document.getElementById('alunoSelect');
+  const turma = sel.options[sel.selectedIndex]?.dataset.turma||'';
+  document.getElementById('turmaField').value = turma;
+}
+function updateTime(){
+  const f = document.getElementById('dataHoraField');
+  if(f) f.value = new Date().toLocaleString();
+}
+async function handleInfraction(e){
   e.preventDefault();
   const alunoId = document.getElementById('alunoSelect').value;
-  const descricao = document.getElementById('descricaoField').value;
-  const observacoes = document.getElementById('observacoesField').value;
-
-  if (!alunoId) return showMessage('Por favor, selecione um aluno', 'error');
-
-  const aluno = window.appData.alunos.find(a => a.id == alunoId);
-  const now = new Date();
-  const newInfraction = {
-    professor: currentUser.nome,
-    aluno: aluno.nome,
-    turma: aluno.turma,
-    data: now.toISOString().split('T')[0],
-    hora: now.toTimeString().substr(0, 5),
-    descricao,
-    observacoes,
-    status: 'pendente'
+  if(!alunoId) return showMsg('Escolha um aluno','error');
+  const aluno   = window.appData.alunos.find(a=>a.id==alunoId);
+  const now     = new Date();
+  const inf = {
+    professor : currentUser.nome,
+    aluno     : aluno.nome,
+    turma     : aluno.turma,
+    data      : now.toISOString().split('T')[0],
+    hora      : now.toTimeString().substr(0,5),
+    descricao : document.getElementById('descricaoField').value,
+    observacoes: document.getElementById('observacoesField').value,
+    status    : 'pendente'
   };
-
-  await supabase.from('infracoes').insert(newInfraction);
-  await refreshInfractions();
-  e.target.reset();
-  updateCurrentDateTime();
-  showMessage('Infração registrada com sucesso!', 'success');
+  await supabase.from('infracoes').insert(inf);
+  await loadData(); updateStats(); loadLists();
+  e.target.reset(); updateTime();
+  showMsg('Infração registrada','success');
 }
 
-function loadGestorSelectOptions() {
-  const penalidadeSelect = document.getElementById('penalidade-select');
-  penalidadeSelect.innerHTML = '<option value="">Escolha a penalidade...</option>';
-  window.appData.tiposPenalidade.forEach(tipo => {
-    const option = document.createElement('option');
-    option.value = tipo.nome;
-    option.textContent = tipo.nome;
-    penalidadeSelect.appendChild(option);
+/* ----------------------------- Gestor ------------------------------ */
+function fillPenalidades(){
+  const sel = document.getElementById('penalidade-select');
+  sel.innerHTML='<option value="">Escolha</option>';
+  window.appData.tipos.forEach(t=>{
+    sel.innerHTML += `<option value="${t.nome}">${t.nome}</option>`;
   });
 }
-
-async function handlePenalidadeSubmit(e) {
+async function handlePenalty(e){
   e.preventDefault();
-  const penalidade = document.getElementById('penalidade-select').value;
-  if (!penalidade) return showMessage('Por favor, selecione uma penalidade', 'error');
-
-  await supabase
-    .from('infracoes')
-    .update({ status: 'resolvida', penalidade, dataResolucao: new Date().toISOString().split('T')[0] })
-    .eq('id', currentInfractionId);
-
-  await refreshInfractions();
-  fecharModal();
-  showMessage('Penalidade aplicada com sucesso!', 'success');
+  const pen = document.getElementById('penalidade-select').value;
+  await supabase.from('infracoes')
+    .update({status:'resolvida',penalidade:pen,dataResolucao:new Date().toISOString().split('T')[0]})
+    .eq('id',currentInfractionId);
+  fecharModal(); await loadData(); updateStats(); loadLists();
+  showMsg('Penalidade aplicada','success');
 }
+window.fecharModal = ()=>document.getElementById('penalidade-modal')?.classList.add('hidden');
 
-function showMessage(msg, type = 'info') {
-  const messageContainer = document.getElementById('message-container');
-  messageContainer.textContent = msg;
-  messageContainer.className = `message-container message-${type}`;
-  setTimeout(() => {
-    messageContainer.textContent = '';
-    messageContainer.className = 'message-container';
-  }, 5000);
+/* ----------------------- Filtros / listagem ----------------------- */
+function fillFilters(){
+  const fp = document.getElementById('filtro-professor');
+  const ft = document.getElementById('filtro-turma');
+  if(fp){ fp.innerHTML='<option value="">Todos</option>';
+    window.appData.professores.forEach(p=>fp.innerHTML+=`<option>${p.nome}</option>`); }
+  if(ft){ ft.innerHTML='<option value="">Todas</option>';
+    [...new Set(window.appData.alunos.map(a=>a.turma))]
+      .forEach(t=>ft.innerHTML+=`<option>${t}</option>`); }
 }
+function limparFiltros(){['filtro-professor','filtro-turma','filtro-data'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});applyFilters();}
+window.limparFiltros = limparFiltros;
+function applyFilters(){ loadLists(); }
 
-function fecharModal() {
-  const modal = document.getElementById('penalidade-modal');
-  if (modal) modal.classList.add('hidden');
+function loadLists(){
+  const pend = document.getElementById('ocorrencia-pendentes-list');
+  const hist = document.getElementById('ocorrencia-historico-list');
+  if(!pend||!hist) return;
+  pend.innerHTML=''; hist.innerHTML='';
+  let data = [...window.appData.infracoes];
+  const fProf = document.getElementById('filtro-professor').value;
+  const fTurma= document.getElementById('filtro-turma').value;
+  const fData = document.getElementById('filtro-data').value;
+  if(fProf)  data=data.filter(i=>i.professor===fProf);
+  if(fTurma) data=data.filter(i=>i.turma===fTurma);
+  if(fData)  data=data.filter(i=>i.data===fData);
+
+  data.filter(i=>i.status==='pendente').forEach(i=>{
+    pend.innerHTML+=`<div>${i.data} - ${i.aluno} (${i.turma})</div>`;
+  });
+  data.filter(i=>i.status==='resolvida').forEach(i=>{
+    hist.innerHTML+=`<div>${i.data} - ${i.aluno} (${i.turma})</div>`;
+  });
 }
-
-function showTab(tabId) {
-  const pendentesTab = document.getElementById('tab-pendentes');
-  const historicoTab = document.getElementById('tab-historico');
-  const tabs = document.querySelectorAll('.nav-tab');
-
-  tabs.forEach(tab => tab.classList.remove('active'));
-  if (tabId === 'pendentes') {
-    pendentesTab.classList.add('active');
-    historicoTab.classList.add('hidden');
-    tabs[0].classList.add('active');
+function showTab(t){
+  document.querySelectorAll('.nav-tab').forEach(btn=>btn.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(tab=>tab.classList.add('hidden'));
+  if(t==='pendentes'){
+    document.getElementById('tab-pendentes').classList.remove('hidden');
+    document.querySelector('.nav-tab').classList.add('active');
   } else {
-    historicoTab.classList.remove('hidden');
-    pendentesTab.classList.remove('active');
-    tabs[1].classList.add('active');
+    document.getElementById('tab-historico').classList.remove('hidden');
+    document.querySelectorAll('.nav-tab')[1].classList.add('active');
   }
 }
-
-function applyFilters() {
-  // Implementar lógica para aplicar filtros e atualizar listas na tela
-}
-
-function logout() {
-  currentUser = null;
-  currentUserType = null;
-  showScreen('login-screen');
-}
-
-function limparFiltros() {
-  document.getElementById('filtro-professor').value = '';
-  document.getElementById('filtro-turma').value = '';
-  document.getElementById('filtro-data').value = '';
-  applyFilters();
-}
-
-window.showLogin = showLogin;
-window.showScreen = showScreen;
-window.logout = logout;
-window.limparFiltros = limparFiltros;
-window.fecharModal = fecharModal;
 window.showTab = showTab;
+
+/* ------------------------- Estatísticas --------------------------- */
+function updateStats(){
+  const hoje = new Date().toISOString().split('T')[0];
+  const todos = window.appData.infracoes || [];
+  const numHoje   = todos.filter(i=>i.data===hoje).length;
+  const numPend   = todos.filter(i=>i.status==='pendente').length;
+  const numRes    = todos.filter(i=>i.status==='resolvida').length;
+  const semanaIni = new Date(); semanaIni.setDate(semanaIni.getDate()-7);
+  const numSem    = todos.filter(i=>new Date(i.data)>=semanaIni).length;
+
+  if(document.getElementById('ocorrencia-hoje'))        document.getElementById('ocorrencia-hoje').textContent        = numHoje;
+  if(document.getElementById('ocorrencia-semana'))      document.getElementById('ocorrencia-semana').textContent      = numSem;
+  if(document.getElementById('ocorrencia-pendentes'))   document.getElementById('ocorrencia-pendentes').textContent   = numPend;
+  if(document.getElementById('ocorrencia-resolvidas'))  document.getElementById('ocorrencia-resolvidas').textContent  = numRes;
+}
+
+/* --------------------------- Utilidades --------------------------- */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
+  document.getElementById(id)?.classList.remove('hidden');
+}
+function showMsg(msg,type='info'){
+  const box=document.getElementById('message-container');
+  box.textContent=msg; box.className=`msg ${type}`; setTimeout(()=>box.textContent='',4000);
+}
+
+/* Expor funções usadas no HTML */
+window.showScreen = showScreen;
