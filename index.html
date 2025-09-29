@@ -1,316 +1,331 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sistema de Infrações Disciplinares</title>
-  <link rel="stylesheet" href="style.css" />
-  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-  <script defer src="app.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Registro de Infrações Disciplinares</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <div class="app">
-    <!-- Tela Inicial: Login/Registro -->
+    <!-- Loading Spinner -->
+    <div id="loading" class="loading hidden">
+        <div class="spinner"></div>
+        <p>Carregando...</p>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- Tela de Login -->
     <div id="login-screen" class="screen active">
-      <div class="container">
         <div class="login-container">
-          <div class="card">
-            <div class="card__body">
-              <h1 class="login-title">Sistema de Infrações Disciplinares</h1>
-              <p class="login-subtitle">Acesse com seu e-mail e senha</p>
-
-              <form id="authForm" class="login-form">
-                <div class="form-group">
-                  <label class="form-label">E-mail</label>
-                  <input id="authEmail" type="email" class="form-control" placeholder="seuemail@escola.br" required />
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Senha</label>
-                  <input id="authPassword" type="password" class="form-control" placeholder="••••••••" required />
-                </div>
-                <button type="submit" class="btn btn--primary btn--full-width">Entrar</button>
-              </form>
-
-              <div class="divider">ou</div>
-
-              <form id="signupForm" class="login-form">
-                <div class="form-group">
-                  <label class="form-label">Criar conta (primeiro acesso)</label>
-                  <input id="signupEmail" type="email" class="form-control" placeholder="seuemail@escola.br" required />
-                </div>
-                <div class="form-group">
-                  <input id="signupPassword" type="password" class="form-control" placeholder="Crie uma senha" required />
-                </div>
-                <button type="submit" class="btn btn--outline btn--full-width">Criar conta</button>
-              </form>
-
+            <div class="login-header">
+                <i class="fas fa-school"></i>
+                <h1>Sistema de Infrações Disciplinares</h1>
+                <p>Gerencie infrações escolares de forma eficiente</p>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tela de Solicitação de Acesso (Fluxo C) -->
-    <div id="request-access-screen" class="screen hidden">
-      <div class="container">
-        <div class="login-container">
-          <div class="card">
-            <div class="card__body">
-              <button class="btn btn--outline btn--sm back-btn" id="btnLogoutFromRequest">Sair</button>
-              <h2 class="login-form-title">Solicitar Acesso</h2>
-              <p class="text-secondary">
-                Seu usuário foi autenticado, mas ainda não tem permissão no sistema.<br/>
-                Informe seu nome e envie a solicitação. Um gestor aprovará seu acesso.
-              </p>
-
-              <form id="requestAccessForm" class="login-form">
+            
+            <form id="login-form" class="login-form">
                 <div class="form-group">
-                  <label class="form-label">Seu nome completo</label>
-                  <input id="solicitanteNome" type="text" class="form-control" placeholder="Ex: Ana Souza" required />
+                    <label class="form-label" for="email">Email</label>
+                    <input type="email" id="email" class="form-control" required placeholder="Digite seu email">
                 </div>
-                <button type="submit" class="btn btn--primary btn--full-width">Enviar solicitação</button>
-              </form>
-
-              <div id="requestStatus" class="text-secondary" style="margin-top:12px;"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Interface do Professor -->
-    <div id="professor-screen" class="screen hidden">
-      <header class="header">
-        <div class="container">
-          <div class="header-content">
-            <h1>Sistema de Infrações - Professor</h1>
-            <div class="header-actions">
-              <span class="user-info" id="professor-name"></span>
-              <button class="btn btn--outline" id="btnLogoutProfessor">Sair</button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main class="container">
-        <div class="professor-main">
-          <div class="card">
-            <div class="card__body">
-              <h2>Registrar Infração</h2>
-              <p class="text-secondary">Registre rapidamente infrações relacionadas ao uso de celular em sala de aula</p>
-
-              <form id="infracaoForm" class="infraction-form">
-                <div class="form-row">
-                  <div class="form-group">
-                    <label class="form-label">Professor</label>
-                    <input type="text" class="form-control" id="professorField" readonly>
-                  </div>
-
-                  <div class="form-group">
-                    <label class="form-label">Data e Hora</label>
-                    <input type="text" class="form-control" id="dataHoraField" readonly>
-                  </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="password">Senha</label>
+                    <input type="password" id="password" class="form-control" required placeholder="Digite sua senha">
                 </div>
-
-                <div class="form-row">
-                  <div class="form-group">
-                    <label class="form-label">Aluno *</label>
-                    <select class="form-control" id="alunoSelect" required>
-                      <option value="">Selecione o aluno...</option>
+                
+                <div class="form-group">
+                    <label class="form-label" for="user-type">Tipo de Usuário</label>
+                    <select id="user-type" class="form-control" required>
+                        <option value="">Selecione seu perfil</option>
+                        <option value="professor">Professor</option>
+                        <option value="gestor">Gestor</option>
                     </select>
-                  </div>
-
-                  <div class="form-group">
-                    <label class="form-label">Turma</label>
-                    <input type="text" class="form-control" id="turmaField" readonly>
-                  </div>
                 </div>
-
-                <div class="form-group">
-                  <label class="form-label">Descrição da Infração</label>
-                  <input type="text" class="form-control" id="descricaoField" value="Uso de celular durante a aula" required>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label">Observações Adicionais</label>
-                  <textarea class="form-control" id="observacoesField" rows="3" placeholder="Descreva o contexto da infração..."></textarea>
-                </div>
-
-                <button type="submit" class="btn btn--primary btn--lg btn--full-width">
-                  Registrar Infração
+                
+                <button type="submit" class="btn btn--primary btn--full-width btn--lg">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Entrar
                 </button>
-              </form>
-            </div>
-          </div>
+            </form>
         </div>
-      </main>
     </div>
 
-    <!-- Interface do Gestor -->
-    <div id="gestor-screen" class="screen hidden">
-      <header class="header">
+    <!-- Tela Principal do Professor -->
+    <div id="professor-screen" class="screen hidden">
+        <header class="app-header">
+            <div class="container flex justify-between items-center">
+                <div class="header-info">
+                    <h2><i class="fas fa-chalkboard-teacher"></i> Professor</h2>
+                    <span id="professor-name" class="professor-name">Carregando...</span>
+                </div>
+                <button id="logout-btn" class="btn btn--outline btn--sm">
+                    <i class="fas fa-sign-out-alt"></i> Sair
+                </button>
+            </div>
+        </header>
+
         <div class="container">
-          <div class="header-content">
-            <h1>Sistema de Infrações - Gestão</h1>
-            <div class="header-actions">
-              <span class="user-info" id="gestor-name"></span>
-              <button class="btn btn--outline" id="btnLogoutGestor">Sair</button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main class="container">
-        <div class="gestor-main">
-          <!-- Estatísticas -->
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-number" id="infracoes-hoje">0</div>
-              <div class="stat-label">Infrações Hoje</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-number" id="infracoes-semana">0</div>
-              <div class="stat-label">Esta Semana</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-number" id="infracoes-pendentes">0</div>
-              <div class="stat-label">Pendentes</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-number" id="infracoes-resolvidas">0</div>
-              <div class="stat-label">Resolvidas</div>
-            </div>
-          </div>
-
-          <!-- Navegação -->
-          <div class="nav-tabs">
-            <button class="nav-tab active" onclick="showTab('pendentes')">Infrações Pendentes</button>
-            <button class="nav-tab" onclick="showTab('historico')">Histórico</button>
-            <button class="nav-tab" onclick="showTab('aprovacoes')">Pendências de Acesso</button>
-            <button class="nav-tab" onclick="showTab('cadastros')">Cadastros</button>
-          </div>
-
-          <!-- Tab Pendentes -->
-          <div id="tab-pendentes" class="tab-content active">
-            <div class="card">
-              <div class="card__body">
-                <div class="filters">
-                  <h3>Filtros</h3>
-                  <div class="filter-row">
-                    <select class="form-control filter-select" id="filtro-professor">
-                      <option value="">Todos os professores</option>
-                    </select>
-                    <select class="form-control filter-select" id="filtro-turma">
-                      <option value="">Todas as turmas</option>
-                    </select>
-                    <input type="date" class="form-control filter-select" id="filtro-data">
-                    <button class="btn btn--secondary" onclick="limparFiltros()">Limpar</button>
-                  </div>
+            <div class="professor-content">
+                <!-- Estatísticas rápidas -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar-day"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-number" id="stats-hoje">0</span>
+                            <span class="stat-label">Hoje</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar-week"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-number" id="stats-semana">0</span>
+                            <span class="stat-label">Esta Semana</span>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="infractions-list" id="infracoes-pendentes-list"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Tab Histórico -->
-          <div id="tab-historico" class="tab-content hidden">
-            <div class="card">
-              <div class="card__body">
-                <h3>Infrações Resolvidas</h3>
-                <div class="infractions-list" id="infracoes-historico-list"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Tab Aprovações -->
-          <div id="tab-aprovacoes" class="tab-content hidden">
-            <div class="card">
-              <div class="card__body">
-                <h3>Solicitações Pendentes</h3>
-                <div id="pendencias-list" class="infractions-list"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Tab Cadastros -->
-          <div id="tab-cadastros" class="tab-content hidden">
-            <div class="card">
-              <div class="card__body">
-                <h3>Cadastro de Alunos</h3>
-                <form id="alunoForm" class="form-inline" style="margin-bottom: 12px;">
-                  <input type="hidden" id="alunoIdEdit" value="">
-                  <div class="form-row">
-                    <div class="form-group">
-                      <label class="form-label">Nome do aluno</label>
-                      <input id="alunoNome" type="text" class="form-control" placeholder="Ex: João Silva" required>
+                <!-- Formulário de Registro -->
+                <div class="card">
+                    <div class="card__header">
+                        <h3><i class="fas fa-plus-circle"></i> Registrar Nova Infração</h3>
                     </div>
-                    <div class="form-group">
-                      <label class="form-label">Turma</label>
-                      <input id="alunoTurma" type="text" class="form-control" placeholder="Ex: 6º A" required>
+                    <div class="card__body">
+                        <form id="infraction-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label" for="student">Aluno</label>
+                                    <select id="student" class="form-control" required>
+                                        <option value="">Selecione o aluno</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="infraction-type">Tipo de Infração</label>
+                                    <select id="infraction-type" class="form-control" required>
+                                        <option value="">Selecione o tipo</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label" for="local">Local da Ocorrência</label>
+                                <input type="text" id="local" class="form-control" required placeholder="Ex: Sala de aula, Pátio, Biblioteca">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label" for="description">Descrição Detalhada</label>
+                                <textarea id="description" class="form-control" rows="3" required placeholder="Descreva o que aconteceu..."></textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn btn--primary btn--full-width">
+                                <i class="fas fa-save"></i>
+                                Registrar Infração
+                            </button>
+                        </form>
                     </div>
-                  </div>
-                  <div>
-                    <button type="submit" id="alunoSubmitBtn" class="btn btn--primary">Salvar</button>
-                    <button type="button" class="btn btn--outline" id="alunoCancelBtn" style="display:none;">Cancelar</button>
-                  </div>
-                </form>
-                <div id="alunosList" class="infractions-list"></div>
-              </div>
-            </div>
+                </div>
 
-            <div class="card" style="margin-top:16px;">
-              <div class="card__body">
-                <h3>Catálogo de Penalidades</h3>
-                <form id="penalidadeCatForm" class="form-inline" style="margin-bottom: 12px;">
-                  <input type="hidden" id="penIdEdit" value="">
-                  <div class="form-row">
-                    <div class="form-group" style="width:100%;">
-                      <label class="form-label">Título</label>
-                      <input id="penTitulo" type="text" class="form-control" placeholder="Ex: Advertência verbal" required>
+                <!-- Lista de Infrações Recentes -->
+                <div class="card">
+                    <div class="card__header">
+                        <h3><i class="fas fa-history"></i> Infrações Recentes</h3>
                     </div>
-                  </div>
-                  <div>
-                    <button type="submit" id="penSubmitBtn" class="btn btn--primary">Salvar</button>
-                    <button type="button" class="btn btn--outline" id="penCancelBtn" style="display:none;">Cancelar</button>
-                  </div>
-                </form>
-                <div id="penalidadesList" class="infractions-list"></div>
-              </div>
+                    <div class="card__body">
+                        <div id="recent-infractions" class="infractions-list">
+                            <!-- Lista será carregada dinamicamente -->
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
         </div>
-      </main>
+    </div>
+
+    <!-- Dashboard do Gestor -->
+    <div id="gestor-screen" class="screen hidden">
+        <header class="app-header">
+            <div class="container flex justify-between items-center">
+                <div class="header-info">
+                    <h2><i class="fas fa-users-cog"></i> Dashboard do Gestor</h2>
+                </div>
+                <div class="header-actions">
+                    <button id="view-history-btn" class="btn btn--secondary btn--sm">
+                        <i class="fas fa-history"></i> Histórico
+                    </button>
+                    <button id="logout-gestor-btn" class="btn btn--outline btn--sm">
+                        <i class="fas fa-sign-out-alt"></i> Sair
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="container">
+            <!-- Estatísticas Gerais -->
+            <div class="stats-grid-large">
+                <div class="stat-card large">
+                    <div class="stat-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="total-pendentes">0</span>
+                        <span class="stat-label">Pendentes</span>
+                    </div>
+                </div>
+                <div class="stat-card large">
+                    <div class="stat-icon">
+                        <i class="fas fa-calendar-day"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="total-hoje">0</span>
+                        <span class="stat-label">Hoje</span>
+                    </div>
+                </div>
+                <div class="stat-card large">
+                    <div class="stat-icon">
+                        <i class="fas fa-calendar-week"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="total-semana">0</span>
+                        <span class="stat-label">Esta Semana</span>
+                    </div>
+                </div>
+                <div class="stat-card large">
+                    <div class="stat-icon">
+                        <i class="fas fa-calendar-month"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="total-mes">0</span>
+                        <span class="stat-label">Este Mês</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtros -->
+            <div class="card">
+                <div class="card__header">
+                    <h3><i class="fas fa-filter"></i> Filtros</h3>
+                </div>
+                <div class="card__body">
+                    <div class="filters-grid">
+                        <div class="form-group">
+                            <label class="form-label">Data Inicial</label>
+                            <input type="date" id="filter-date-start" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Data Final</label>
+                            <input type="date" id="filter-date-end" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Turma</label>
+                            <select id="filter-turma" class="form-control">
+                                <option value="">Todas as turmas</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Status</label>
+                            <select id="filter-status" class="form-control">
+                                <option value="">Todos os status</option>
+                                <option value="PENDENTE">Pendente</option>
+                                <option value="EM_ANALISE">Em Análise</option>
+                                <option value="RESOLVIDA">Resolvida</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <button id="apply-filters" class="btn btn--primary btn--full-width">
+                                <i class="fas fa-search"></i> Aplicar Filtros
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de Infrações Pendentes -->
+            <div class="card">
+                <div class="card__header">
+                    <h3><i class="fas fa-list"></i> Infrações para Análise</h3>
+                </div>
+                <div class="card__body">
+                    <div id="pending-infractions" class="infractions-manager">
+                        <!-- Lista será carregada dinamicamente -->
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Modal de Penalidade -->
-    <div id="penalidade-modal" class="modal hidden">
-      <div class="modal-overlay" onclick="fecharModal()"></div>
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>Aplicar Penalidade</h3>
-          <button class="modal-close" onclick="fecharModal()">×</button>
-        </div>
-        <div class="modal-body">
-          <div class="infraction-summary" id="infraction-summary"></div>
-
-          <form id="penalidadeForm">
-            <div class="form-group">
-              <label class="form-label">Selecione a Penalidade:</label>
-              <select class="form-control" id="penalidade-select" required></select>
+    <div id="penalty-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Aplicar Penalidade</h3>
+                <button class="modal-close">&times;</button>
             </div>
-
-            <div class="modal-actions">
-              <button type="button" class="btn btn--outline" onclick="fecharModal()">Cancelar</button>
-              <button type="submit" class="btn btn--primary">Aplicar Penalidade</button>
+            <div class="modal-body">
+                <div id="infraction-details" class="infraction-summary">
+                    <!-- Detalhes da infração -->
+                </div>
+                
+                <form id="penalty-form">
+                    <div class="form-group">
+                        <label class="form-label">Tipo de Penalidade</label>
+                        <select id="penalty-type" class="form-control" required>
+                            <option value="">Selecione a penalidade</option>
+                        </select>
+                    </div>
+                    
+                    <div id="suspension-dates" class="form-group hidden">
+                        <label class="form-label">Data de Início da Suspensão</label>
+                        <input type="date" id="suspension-start" class="form-control">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Observações</label>
+                        <textarea id="penalty-observations" class="form-control" rows="3" placeholder="Observações sobre a penalidade aplicada..."></textarea>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn--secondary modal-cancel">Cancelar</button>
+                        <button type="submit" class="btn btn--primary">
+                            <i class="fas fa-gavel"></i> Aplicar Penalidade
+                        </button>
+                    </div>
+                </form>
             </div>
-          </form>
         </div>
-      </div>
     </div>
 
-    <!-- Mensagens de sucesso/erro -->
-    <div id="message-container" class="message-container"></div>
-  </div>
+    <!-- Tela de Histórico -->
+    <div id="history-screen" class="screen hidden">
+        <header class="app-header">
+            <div class="container flex justify-between items-center">
+                <div class="header-info">
+                    <h2><i class="fas fa-history"></i> Histórico de Infrações</h2>
+                </div>
+                <button id="back-to-dashboard" class="btn btn--secondary btn--sm">
+                    <i class="fas fa-arrow-left"></i> Voltar ao Dashboard
+                </button>
+            </div>
+        </header>
+
+        <div class="container">
+            <div class="card">
+                <div class="card__body">
+                    <div id="history-list" class="history-table">
+                        <!-- Histórico será carregado dinamicamente -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
 </body>
 </html>
