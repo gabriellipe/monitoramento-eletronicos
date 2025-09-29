@@ -268,9 +268,24 @@ function applyFilters() {
   // Implementar conforme necessidade
   // Exemplo: filtrar window.appData.infracoes e atualizar listas na tela
 }
+// No final do app.js - apenas funções que existem:
+function logout() {
+  currentUser = null;
+  currentUserType = null;
+  showScreen('login-screen');
+}
+
+function limparFiltros() {
+  document.getElementById('filtro-professor').value = '';
+  document.getElementById('filtro-turma').value = '';
+  document.getElementById('filtro-data').value = '';
+  applyFilters();
+}
+
+// Expondo ao escopo global
 window.showLogin = showLogin;
 window.showScreen = showScreen;
-window.logout = logout;        // caso exista essa função
-window.limparFiltros = limparFiltros; // se existir no seu código
+window.logout = logout;
+window.limparFiltros = limparFiltros;
 window.fecharModal = fecharModal;
 window.showTab = showTab;
