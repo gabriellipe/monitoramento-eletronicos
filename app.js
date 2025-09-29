@@ -25,9 +25,9 @@ async function loadInitialData() {
   const { data: professores } = await supabase.from('professores').select('*');
   const { data: alunos } = await supabase.from('alunos').select('*');
   const { data: tiposPenalidade } = await supabase.from('tipos_penalidade').select('*');
-  const { data: infracoes } = await supabase.from('infracoes').select('*');
+  const { data: ocorrencias } = await supabase.from('ocorrencias').select('*');
 
-  window.appData = { professores, alunos, tiposPenalidade, infracoes };
+  window.appData = { professores, alunos, tiposPenalidade, ocorrencias };
 }
 
 function setupFormEvents() {
