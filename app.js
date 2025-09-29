@@ -1,11 +1,8 @@
-// app.js
-
-// 🚨 NÃO EDITAR ABAIXO DESTA LINHA 🚨
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
+// 🚨 NÃO EDITAR ABAIXO DESTA LINHA 🚨
 const SUPABASE_URL = 'https://wzzryluesqxwyijievyj.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6enJ5bHVlc3F4d3lpamlldnlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg5OTk2NjYsImV4cCI6MjA3NDU3NTY2Nn0.aqT7PaKjj9QS547HEQ7EDyl8kvCIg4GrQJ4AXvjsG0k';
-
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // 🚨 NÃO EDITAR ACIMA DESTA LINHA 🚨
 
@@ -21,10 +18,10 @@ async function initializeApp() {
   setupFormEvents();
   updateCurrentDateTime();
   setupFilters();
+  calculateStatistics();
 }
 
 async function loadInitialData() {
-  // Carrega professores, alunos, turmas, tipos de penalidade e infrações
   const { data: professores } = await supabase.from('professores').select('*');
   const { data: alunos } = await supabase.from('alunos').select('*');
   const { data: tiposPenalidade } = await supabase.from('tipos_penalidade').select('*');
@@ -33,7 +30,6 @@ async function loadInitialData() {
   window.appData = { professores, alunos, tiposPenalidade, infracoes };
 }
 
-// Configuração de eventos dos formulários
 function setupFormEvents() {
   const loginForm = document.getElementById('loginForm');
   if (loginForm) loginForm.addEventListener('submit', handleLogin);
@@ -47,23 +43,87 @@ function setupFormEvents() {
   const alunoSelect = document.getElementById('alunoSelect');
   if (alunoSelect) alunoSelect.addEventListener('change', updateTurmaField);
 
-  const filtros = ['filtro-professor', 'filtro-turma', 'filtro-data'];
-  filtros.forEach(filtroId => {
+  ['filtro-professor', 'filtro-turma', 'filtro-data'].forEach(filtroId => {
     const filtro = document.getElementById(filtroId);
     if (filtro) filtro.addEventListener('change', applyFilters);
   });
 }
 
-// Funções de login
+function updateCurrentDateTime() {
+  const campoDataHora = document.getElementById('dataHoraField');
+  if (campoDataHora) {
+    campoDataHora.value = new Date().toLocaleString();
+  }
+}
+
+function setupFilters() {
+  // Pode implementar se desejar lógica para filtros iniciais
+}
+
+async function refreshInfractions() {
+  const { data: infracoes } = await supabase.from('infracoes').select('*');
+  window.appData.infracoes = infracoes;
+  calculateStatistics();
+  loadInfractionsList();
+}
+
+function calculateStatistics() {
+  const hoje = new Date().toISOString().split('T')[0];
+  const infracoes = window.appData.infracoes || [];
+
+  const infracoesHoje = infracoes.filter(i => i.data === hoje).length;
+  // Exemplo, adicione cálculos para semana, pendentes e resolvidas aqui:
+  const semana = new Date();
+  semana.setDate(semana.getDate() - 7);
+  const infracoesSemana = infracoes.filter(i => new Date(i.data) >= semana).length;
+  const infracoesPendentes = infracoes.filter(i => i.status === 'pendente').length;
+  const infracoesResolvidas = infracoes.filter(i => i.status === 'resolvida').length;
+
+  document.getElementById('infracoes-hoje').textContent = infracoesHoje;
+  document.getElementById('infracoes-semana').textContent = infracoesSemana;
+  document.getElementById('infracoes-pendentes').textContent = infracoesPendentes;
+  document.getElementById('infracoes-resolvidas').textContent = infracoesResolvidas;
+}
+
+function loadInfractionsList() {
+  // Aqui implementar o carregamento das infrações na tela, pendentes e histórico
+  // Por exemplo: preencher #infracoes-pendentes-list e #infracoes-historico-list conforme os dados.
+}
+
+// Atualize o valor do campo turma ao mudar seleção do aluno
+function updateTurmaField() {
+  const alunoSelect = document.getElementById('alunoSelect');
+  const turmaField = document.getElementById('turmaField');
+  if (!alunoSelect || !turmaField) return;
+
+  const selectedOption = alunoSelect.options[alunoSelect.selectedIndex];
+  // Pega o atributo dataset.turma criado na opção
+  const turma = selectedOption ? selectedOption.dataset.turma : '';
+  turmaField.value = turma;
+}
+
+function showScreen(screenId) {
+  document.querySelectorAll('.screen').forEach(screen => {
+    screen.classList.add('hidden');
+    screen.classList.remove('active');
+  });
+  const screen = document.getElementById(screenId);
+  if (screen) {
+    screen.classList.remove('hidden');
+    screen.classList.add('active');
+  }
+}
+
 function showLogin(userType) {
   currentUserType = userType;
   const loginTypeSpan = document.getElementById('login-type');
   loginTypeSpan.textContent = userType === 'professor' ? 'Professor' : 'Gestor';
+
   const userSelect = document.getElementById('userSelect');
   userSelect.innerHTML = '<option value="">Escolha...</option>';
 
   if (userType === 'professor') {
-    appData.professores.forEach(prof => {
+    window.appData.professores.forEach(prof => {
       const option = document.createElement('option');
       option.value = prof.id;
       option.textContent = prof.nome;
@@ -76,7 +136,7 @@ function showLogin(userType) {
     userSelect.appendChild(option);
   }
 
-  showScreen('login-screen');
+  showScreen('login-form'); // Corrigido para abrir tela de login de fato
 }
 
 async function handleLogin(e) {
@@ -85,7 +145,7 @@ async function handleLogin(e) {
   if (!selectedValue) return showMessage('Por favor, selecione um usuário', 'error');
 
   if (currentUserType === 'professor') {
-    currentUser = appData.professores.find(p => p.id == selectedValue);
+    currentUser = window.appData.professores.find(p => p.id == selectedValue);
     document.getElementById('professor-name').textContent = currentUser.nome;
     document.getElementById('professorField').value = currentUser.nome;
     loadProfessorSelectOptions();
@@ -100,11 +160,10 @@ async function handleLogin(e) {
   showMessage('Login realizado com sucesso!', 'success');
 }
 
-// Funções do Professor
 function loadProfessorSelectOptions() {
   const alunoSelect = document.getElementById('alunoSelect');
   alunoSelect.innerHTML = '<option value="">Selecione o aluno...</option>';
-  appData.alunos.forEach(aluno => {
+  window.appData.alunos.forEach(aluno => {
     const option = document.createElement('option');
     option.value = aluno.id;
     option.textContent = aluno.nome;
@@ -113,7 +172,6 @@ function loadProfessorSelectOptions() {
   });
 }
 
-// Submissão de infração
 async function handleInfracaoSubmit(e) {
   e.preventDefault();
   const alunoId = document.getElementById('alunoSelect').value;
@@ -122,7 +180,7 @@ async function handleInfracaoSubmit(e) {
 
   if (!alunoId) return showMessage('Por favor, selecione um aluno', 'error');
 
-  const aluno = appData.alunos.find(a => a.id == alunoId);
+  const aluno = window.appData.alunos.find(a => a.id == alunoId);
   const now = new Date();
   const newInfraction = {
     professor: currentUser.nome,
@@ -142,11 +200,10 @@ async function handleInfracaoSubmit(e) {
   showMessage('Infração registrada com sucesso!', 'success');
 }
 
-// Funções do Gestor
 function loadGestorSelectOptions() {
   const penalidadeSelect = document.getElementById('penalidade-select');
   penalidadeSelect.innerHTML = '<option value="">Escolha a penalidade...</option>';
-  appData.tiposPenalidade.forEach(tipo => {
+  window.appData.tiposPenalidade.forEach(tipo => {
     const option = document.createElement('option');
     option.value = tipo.nome;
     option.textContent = tipo.nome;
@@ -169,15 +226,45 @@ async function handlePenalidadeSubmit(e) {
   showMessage('Penalidade aplicada com sucesso!', 'success');
 }
 
-// Atualização de dados após mutações
-async function refreshInfractions() {
-  const { data: infracoes } = await supabase.from('infracoes').select('*');
-  window.appData.infracoes = infracoes;
-  calculateStatistics();
-  loadInfractionsList();
+// Outras funções para interface, exibir modais, mensagens e filtros devem ser adicionadas conforme necessário
+
+function showMessage(msg, type = 'info') {
+  const messageContainer = document.getElementById('message-container');
+  messageContainer.textContent = msg;
+  messageContainer.className = `message-container message-${type}`;
+  setTimeout(() => {
+    messageContainer.textContent = '';
+    messageContainer.className = 'message-container';
+  }, 5000);
 }
 
-// Demais funções de interface (filtros, exibição de telas, estatísticas, modais, mensagens, etc.)
-// … (permaneça com o conteúdo original, substituindo appData.infracoes por window.appData.infracoes)
-// Exemplo de uso em filtros:
-// const infracoesHoje = appData.infracoes.filter(i => i.data === hoje).length;
+function fecharModal() {
+  const modal = document.getElementById('penalidade-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function showTab(tabId) {
+  // Função para alternar entre tabs 'pendentes' e 'historico'
+  const pendentesTab = document.getElementById('tab-pendentes');
+  const historicoTab = document.getElementById('tab-historico');
+  const pendenteBtn = document.querySelector('.nav-tab.active');
+  const tabs = document.querySelectorAll('.nav-tab');
+
+  tabs.forEach(tab => tab.classList.remove('active'));
+  if (tabId === 'pendentes') {
+    pendentesTab.classList.add('active');
+    historicoTab.classList.add('hidden');
+    tabs[0].classList.add('active');
+  } else {
+    historicoTab.classList.remove('hidden');
+    pendentesTab.classList.remove('active');
+    tabs[1].classList.add('active');
+  }
+}
+
+function applyFilters() {
+  // Aplicar filtros nos dados de infrações com base nos selects e input
+  // Isto deve filtrar a lista de infrações exibida
+  // Implementar conforme necessidade
+  // Exemplo: filtrar window.appData.infracoes e atualizar listas na tela
+}
