@@ -1,104 +1,210 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Sistema de Infrações</title>
-<link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Infrações Disciplinares</title>
+    <link rel="stylesheet" href="style-adicional.css">
 </head>
 <body>
-<div class="app">
-  <!-- LOGIN ------------------------------------------------------------------>
-  <div id="login-screen" class="screen active">
-    <div class="container">
-      <h1>Sistema de Infrações Disciplinares</h1>
-      <p>Selecione seu perfil</p>
-      <button class="btn" onclick="showLogin('professor')">👨‍🏫 Professor</button>
-      <button class="btn" onclick="showLogin('gestor')">👩‍💼 Gestor</button>
+    <!-- Tela de Login -->
+    <div id="loginScreen" class="screen">
+        <div class="login-container">
+            <h1>Sistema de Infrações Disciplinares</h1>
+            <div class="login-card">
+                <h2>Faça login para acessar o sistema</h2>
+                <form id="loginForm">
+                    <div class="input-group">
+                        <label for="email">Email:</label>
+                        <input type="email" id="email" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="password">Senha:</label>
+                        <input type="password" id="password" required>
+                    </div>
+                    <button type="button" id="loginBtn" class="primary-btn">Entrar</button>
+                </form>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <!-- FORM LOGIN ------------------------------------------------------------->
-  <div id="login-form" class="screen hidden">
-    <div class="container">
-      <button class="btn" onclick="showScreen('login-screen')">← Voltar</button>
-      <h2>Login - <span id="login-type"></span></h2>
-      <form id="loginForm">
-        <select id="userSelect" required></select>
-        <button class="btn" type="submit">Entrar</button>
-      </form>
+    <!-- Tela de Setup do Perfil -->
+    <div id="setupScreen" class="screen" style="display: none;">
+        <div class="setup-container">
+            <h1>Configurar Perfil</h1>
+            <div class="setup-card">
+                <h2>Complete seu perfil</h2>
+                <form id="setupForm">
+                    <div class="input-group">
+                        <label for="setupEmail">Email:</label>
+                        <input type="email" id="setupEmail" readonly>
+                    </div>
+                    <div class="input-group">
+                        <label for="setupRole">Papel:</label>
+                        <select id="setupRole" required>
+                            <option value="">Selecionar papel</option>
+                            <option value="teacher">Professor</option>
+                            <option value="manager">Gestor</option>
+                        </select>
+                    </div>
+                    <button type="button" id="setupProfileBtn" class="primary-btn">Criar Perfil</button>
+                </form>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <!-- PROFESSOR -------------------------------------------------------------->
-  <div id="professor-screen" class="screen hidden">
-    <header>
-      <span id="professor-name"></span>
-      <button class="btn" onclick="logout()">Sair</button>
-    </header>
-    <main class="container">
-      <h2>Registrar Infração</h2>
-      <form id="infracaoForm">
-        <input id="professorField" readonly />
-        <input id="dataHoraField" readonly />
-        <select id="alunoSelect" required></select>
-        <input id="turmaField" readonly />
-        <input id="descricaoField" value="Uso de celular" required />
-        <textarea id="observacoesField"></textarea>
-        <button class="btn" type="submit">Registrar</button>
-      </form>
-    </main>
-  </div>
+    <!-- Aplicação Principal -->
+    <div id="appScreen" class="screen" style="display: none;">
+        <!-- Header -->
+        <header class="header">
+            <h1>Sistema de Infrações Disciplinares</h1>
+            <div class="user-info">
+                <span id="userInfo"></span>
+                <button id="logoutBtn" class="secondary-btn">Sair</button>
+            </div>
+        </header>
 
-  <!-- GESTOR ----------------------------------------------------------------->
-  <div id="gestor-screen" class="screen hidden">
-    <header>
-      <span id="gestor-name"></span>
-      <button class="btn" onclick="logout()">Sair</button>
-    </header>
+        <!-- Navegação por Abas -->
+        <nav class="tabs">
+            <button class="tab-btn" data-tab="report">Registrar Ocorrência</button>
+            <button class="tab-btn" data-tab="occurrences">Ocorrências</button>
+            <button class="tab-btn manager-only" data-tab="users">Gerenciar Usuários</button>
+            <button class="tab-btn manager-only" data-tab="stats">Estatísticas</button>
+        </nav>
 
-    <main class="container">
-      <div class="stats">
-        <div><span id="ocorrencia-hoje">0</span><small>Hoje</small></div>
-        <div><span id="ocorrencia-semana">0</span><small>Semana</small></div>
-        <div><span id="ocorrencia-pendentes">0</span><small>Pendentes</small></div>
-        <div><span id="ocorrencia-resolvidas">0</span><small>Resolvidas</small></div>
-      </div>
+        <!-- Conteúdo das Abas -->
+        <main class="main-content">
+            <!-- Aba: Registrar Ocorrência -->
+            <div id="reportTab" class="tab-content">
+                <div class="card">
+                    <h2>Registrar Nova Ocorrência</h2>
+                    <form id="reportForm">
+                        <div class="row">
+                            <div class="input-group">
+                                <label for="turma">Turma:</label>
+                                <select id="turma" name="turma" required>
+                                    <option value="">Selecione uma turma</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="aluno_nome">Nome do Aluno:</label>
+                                <input type="text" id="aluno_nome" name="aluno_nome" required>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label for="tipo_ocorrencia">Tipo de Ocorrência:</label>
+                            <select id="tipo_ocorrencia" name="tipo_ocorrencia" required>
+                                <option value="">Selecione o tipo</option>
+                                <option value="Uso de celular durante a aula">Uso de celular durante a aula</option>
+                                <option value="Conversa excessiva">Conversa excessiva</option>
+                                <option value="Não fez a atividade">Não fez a atividade</option>
+                                <option value="Comportamento inadequado">Comportamento inadequado</option>
+                                <option value="Atraso">Atraso</option>
+                                <option value="Outros">Outros</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="descricao">Descrição da Ocorrência:</label>
+                            <textarea id="descricao" name="descricao" rows="4" required></textarea>
+                        </div>
+                        <button type="submit" class="primary-btn">Registrar Ocorrência</button>
+                    </form>
+                </div>
+            </div>
 
-      <nav>
-        <button class="nav-tab active" onclick="showTab('pendentes')">Pendentes</button>
-        <button class="nav-tab" onclick="showTab('historico')">Histórico</button>
-      </nav>
+            <!-- Aba: Lista de Ocorrências -->
+            <div id="occurrencesTab" class="tab-content">
+                <div class="card">
+                    <h2>Ocorrências</h2>
+                    <div class="filters">
+                        <select id="statusFilter">
+                            <option value="">Todos os Status</option>
+                            <option value="pendente">Pendentes</option>
+                            <option value="resolvida">Resolvidas</option>
+                        </select>
+                        <select id="turmaFilter">
+                            <option value="">Todas as Turmas</option>
+                        </select>
+                        <button id="filterBtn" class="secondary-btn">Filtrar</button>
+                    </div>
+                    <div id="occurrencesList" class="occurrences-list"></div>
+                </div>
+            </div>
 
-      <section id="tab-pendentes" class="tab active">
-        <select id="filtro-professor"></select>
-        <select id="filtro-turma"></select>
-        <input type="date" id="filtro-data" />
-        <button class="btn" onclick="limparFiltros()">Limpar</button>
-        <div id="ocorrencia-pendentes-list"></div>
-      </section>
+            <!-- Aba: Gerenciar Usuários (apenas managers) -->
+            <div id="usersTab" class="tab-content manager-only">
+                <div class="card">
+                    <h2>Gerenciar Usuários</h2>
+                    <form id="userForm">
+                        <div class="row">
+                            <div class="input-group">
+                                <label for="userEmail">Email do Usuário:</label>
+                                <input type="email" id="userEmail" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="userRole">Papel:</label>
+                                <select id="userRole" required>
+                                    <option value="">Selecionar papel</option>
+                                    <option value="teacher">Professor</option>
+                                    <option value="manager">Gestor</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="button" id="manageProfileBtn" class="primary-btn">Adicionar/Atualizar Usuário</button>
+                    </form>
+                    <div id="perfisList" class="users-list">
+                        <h3>Usuários do Sistema</h3>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2>Gerenciar Turmas</h2>
+                    <form id="turmaForm">
+                        <div class="row">
+                            <div class="input-group">
+                                <label for="professorEmail">Email do Professor:</label>
+                                <input type="email" id="professorEmail" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="turmaNome">Nome da Turma:</label>
+                                <input type="text" id="turmaNome" required>
+                            </div>
+                        </div>
+                        <button type="button" id="manageTurmaBtn" class="primary-btn">Vincular Turma</button>
+                    </form>
+                    <div id="turmasList" class="turmas-list">
+                        <h3>Turmas Vinculadas</h3>
+                    </div>
+                </div>
+            </div>
 
-      <section id="tab-historico" class="tab hidden">
-        <div id="ocorrencia-historico-list"></div>
-      </section>
-    </main>
-  </div>
-
-  <!-- MODAL PENALIDADE ------------------------------------------------------->
-  <div id="penalidade-modal" class="modal hidden">
-    <div class="modal-content">
-      <h3>Aplicar Penalidade</h3>
-      <div id="infraction-summary"></div>
-      <form id="penalidadeForm">
-        <select id="penalidade-select" required></select>
-        <button class="btn" type="submit">Aplicar</button>
-        <button class="btn" type="button" onclick="fecharModal()">Cancelar</button>
-      </form>
+            <!-- Aba: Estatísticas (apenas managers) -->
+            <div id="statsTab" class="tab-content manager-only">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3 id="todayCount">0</h3>
+                        <p>Ocorrências Hoje</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 id="pendingCount">0</h3>
+                        <p>Pendentes</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 id="resolvedCount">0</h3>
+                        <p>Resolvidas</p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2>Relatórios e Estatísticas</h2>
+                    <p>Relatórios em desenvolvimento...</p>
+                </div>
+            </div>
+        </main>
     </div>
-  </div>
 
-  <div id="message-container"></div>
-</div>
-<script type="module" src="app.js"></script>
+    <!-- Scripts -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script type="module" src="app.js"></script>
 </body>
 </html>

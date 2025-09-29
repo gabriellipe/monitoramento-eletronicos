@@ -1,211 +1,486 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+// Configuração do Supabase com suas chaves reais
+const SUPABASE_URL = 'https://wzzryluesqxwyijievyj.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6enJ5bHVlc3F4d3lpamlldnlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg5OTk2NjYsImV4cCI6MjA3NDU3NTY2Nn0.aqT7PaKjj9QS547HEQ7EDyl8kvCIg4GrQJ4AXvjsG0k';
 
-const SUPABASE_URL  = 'https://wzzryluesqxwyijievyj.supabase.co';
-const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6enJ5bHVlc3F4d3lpamlldnlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg5OTk2NjYsImV4cCI6MjA3NDU3NTY2Nn0.aqT7PaKjj9QS547HEQ7EDyl8kvCIg4GrQJ4AXvjsG0k';
-const supabase      = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
 
-let currentUser = null;
-let currentUserType = null;
-let currentInfractionId = null;
+// Estado global da aplicação
+let currentUser = null
+let userRole = null
+let userEmail = null
 
-document.addEventListener('DOMContentLoaded', init);
+// Inicialização
+document.addEventListener('DOMContentLoaded', function() {
+    checkAuthState()
+    setupEventListeners()
+})
 
-async function init() {
-  await loadData();
-  bindEvents();
-  updateTime();
-  fillFilters();
-  updateStats();
+// Verificar estado de autenticação
+async function checkAuthState() {
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (user) {
+        // Buscar informações do usuário na tabela perfis
+        const { data: userData } = await supabase
+            .from('perfis')
+            .select('papel, email')
+            .eq('user_id', user.id)
+            .single()
+        
+        if (userData) {
+            currentUser = user
+            userRole = userData.papel
+            userEmail = userData.email
+            
+            showApp()
+            loadUserData()
+        } else {
+            // Usuário não tem perfil criado, redirecionar para setup
+            showSetup()
+        }
+    } else {
+        showLogin()
+    }
 }
 
-async function loadData() {
-  const { data: professores }   = await supabase.from('professores').select('*');
-  const { data: alunos }        = await supabase.from('alunos').select('*');
-  const { data: tipos }         = await supabase.from('tipos_penalidade').select('*');
-  const { data: infracoes }     = await supabase.from('infracoes').select('*');
-  window.appData = { professores, alunos, tipos, infracoes };
+// Configurar event listeners
+function setupEventListeners() {
+    // Login
+    document.getElementById('loginBtn')?.addEventListener('click', handleLogin)
+    document.getElementById('logoutBtn')?.addEventListener('click', handleLogout)
+    
+    // Setup do perfil
+    document.getElementById('setupProfileBtn')?.addEventListener('click', handleSetupProfile)
+    
+    // Navegação entre abas
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const tabName = e.target.dataset.tab
+            showTab(tabName)
+        })
+    })
+    
+    // Formulário de ocorrência
+    document.getElementById('reportForm')?.addEventListener('submit', handleReportSubmit)
+    
+    // Gestão de perfis (apenas para managers)
+    document.getElementById('manageProfileBtn')?.addEventListener('click', handleManageProfile)
+    
+    // Gestão de turmas (apenas para managers)
+    document.getElementById('manageTurmaBtn')?.addEventListener('click', handleManageTurma)
+    
+    // Resolução de ocorrências (apenas para managers)
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('resolve-btn')) {
+            handleResolveOccurrence(e.target.dataset.id)
+        }
+    })
 }
 
-function bindEvents() {
-  document.getElementById('loginForm')      ?.addEventListener('submit', handleLogin);
-  document.getElementById('infracaoForm')   ?.addEventListener('submit', handleInfraction);
-  document.getElementById('penalidadeForm') ?.addEventListener('submit', handlePenalty);
-  document.getElementById('alunoSelect')    ?.addEventListener('change', updateTurma);
-
-  ['filtro-professor','filtro-turma','filtro-data'].forEach(id=>{
-    document.getElementById(id)?.addEventListener('change', applyFilters);
-  });
+// Login
+async function handleLogin() {
+    const email = document.getElementById('email')?.value
+    const password = document.getElementById('password')?.value
+    
+    if (!email || !password) {
+        alert('Por favor, preencha email e senha')
+        return
+    }
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password
+    })
+    
+    if (error) {
+        alert('Erro no login: ' + error.message)
+    } else {
+        checkAuthState()
+    }
 }
 
-/* ------------------------------ Login ------------------------------ */
-function showLogin(type){
-  if(!window.appData?.professores) return;
-  currentUserType = type;
-  document.getElementById('login-type').textContent = type==='professor'?'Professor':'Gestor';
-  const sel = document.getElementById('userSelect');
-  sel.innerHTML = '';
-  if(type==='professor'){
-    window.appData.professores.forEach(p=>{
-      sel.innerHTML += `<option value="${p.id}">${p.nome}</option>`;
-    });
-  } else {
-    sel.innerHTML = `<option value="gestor">Coordenação Pedagógica</option>`;
-  }
-  showScreen('login-form');
-}
-window.showLogin = showLogin;
-
-function handleLogin(e){
-  e.preventDefault();
-  const id = document.getElementById('userSelect').value;
-  if(!id) return;
-  if(currentUserType==='professor'){
-    currentUser = window.appData.professores.find(p=>p.id==id);
-    document.getElementById('professor-name').textContent = currentUser.nome;
-    document.getElementById('professorField').value = currentUser.nome;
-    fillAlunos();
-    showScreen('professor-screen');
-  } else {
-    currentUser = { nome:'Coordenação Pedagógica'};
-    document.getElementById('gestor-name').textContent = currentUser.nome;
-    fillPenalidades();
-    showScreen('gestor-screen');
-  }
-  showMsg('Login realizado!','success');
-}
-function logout(){ currentUser=null; showScreen('login-screen'); }
-window.logout = logout;
-
-/* --------------------------- Professor ----------------------------- */
-function fillAlunos(){
-  const sel = document.getElementById('alunoSelect');
-  sel.innerHTML='<option value="">Selecione</option>';
-  window.appData.alunos.forEach(a=>{
-    sel.innerHTML += `<option value="${a.id}" data-turma="${a.turma}">${a.nome}</option>`;
-  });
-}
-function updateTurma(){
-  const sel   = document.getElementById('alunoSelect');
-  const turma = sel.options[sel.selectedIndex]?.dataset.turma||'';
-  document.getElementById('turmaField').value = turma;
-}
-function updateTime(){
-  const f = document.getElementById('dataHoraField');
-  if(f) f.value = new Date().toLocaleString();
-}
-async function handleInfraction(e){
-  e.preventDefault();
-  const alunoId = document.getElementById('alunoSelect').value;
-  if(!alunoId) return showMsg('Escolha um aluno','error');
-  const aluno   = window.appData.alunos.find(a=>a.id==alunoId);
-  const now     = new Date();
-  const inf = {
-    professor : currentUser.nome,
-    aluno     : aluno.nome,
-    turma     : aluno.turma,
-    data      : now.toISOString().split('T')[0],
-    hora      : now.toTimeString().substr(0,5),
-    descricao : document.getElementById('descricaoField').value,
-    observacoes: document.getElementById('observacoesField').value,
-    status    : 'pendente'
-  };
-  await supabase.from('infracoes').insert(inf);
-  await loadData(); updateStats(); loadLists();
-  e.target.reset(); updateTime();
-  showMsg('Infração registrada','success');
+// Logout
+async function handleLogout() {
+    await supabase.auth.signOut()
+    currentUser = null
+    userRole = null
+    userEmail = null
+    showLogin()
 }
 
-/* ----------------------------- Gestor ------------------------------ */
-function fillPenalidades(){
-  const sel = document.getElementById('penalidade-select');
-  sel.innerHTML='<option value="">Escolha</option>';
-  window.appData.tipos.forEach(t=>{
-    sel.innerHTML += `<option value="${t.nome}">${t.nome}</option>`;
-  });
-}
-async function handlePenalty(e){
-  e.preventDefault();
-  const pen = document.getElementById('penalidade-select').value;
-  await supabase.from('infracoes')
-    .update({status:'resolvida',penalidade:pen,dataResolucao:new Date().toISOString().split('T')[0]})
-    .eq('id',currentInfractionId);
-  fecharModal(); await loadData(); updateStats(); loadLists();
-  showMsg('Penalidade aplicada','success');
-}
-window.fecharModal = ()=>document.getElementById('penalidade-modal')?.classList.add('hidden');
-
-/* ----------------------- Filtros / listagem ----------------------- */
-function fillFilters(){
-  const fp = document.getElementById('filtro-professor');
-  const ft = document.getElementById('filtro-turma');
-  if(fp){ fp.innerHTML='<option value="">Todos</option>';
-    window.appData.professores.forEach(p=>fp.innerHTML+=`<option>${p.nome}</option>`); }
-  if(ft){ ft.innerHTML='<option value="">Todas</option>';
-    [...new Set(window.appData.alunos.map(a=>a.turma))]
-      .forEach(t=>ft.innerHTML+=`<option>${t}</option>`); }
-}
-function limparFiltros(){['filtro-professor','filtro-turma','filtro-data'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});applyFilters();}
-window.limparFiltros = limparFiltros;
-function applyFilters(){ loadLists(); }
-
-function loadLists(){
-  const pend = document.getElementById('ocorrencia-pendentes-list');
-  const hist = document.getElementById('ocorrencia-historico-list');
-  if(!pend||!hist) return;
-  pend.innerHTML=''; hist.innerHTML='';
-  let data = [...window.appData.infracoes];
-  const fProf = document.getElementById('filtro-professor').value;
-  const fTurma= document.getElementById('filtro-turma').value;
-  const fData = document.getElementById('filtro-data').value;
-  if(fProf)  data=data.filter(i=>i.professor===fProf);
-  if(fTurma) data=data.filter(i=>i.turma===fTurma);
-  if(fData)  data=data.filter(i=>i.data===fData);
-
-  data.filter(i=>i.status==='pendente').forEach(i=>{
-    pend.innerHTML+=`<div>${i.data} - ${i.aluno} (${i.turma})</div>`;
-  });
-  data.filter(i=>i.status==='resolvida').forEach(i=>{
-    hist.innerHTML+=`<div>${i.data} - ${i.aluno} (${i.turma})</div>`;
-  });
-}
-function showTab(t){
-  document.querySelectorAll('.nav-tab').forEach(btn=>btn.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(tab=>tab.classList.add('hidden'));
-  if(t==='pendentes'){
-    document.getElementById('tab-pendentes').classList.remove('hidden');
-    document.querySelector('.nav-tab').classList.add('active');
-  } else {
-    document.getElementById('tab-historico').classList.remove('hidden');
-    document.querySelectorAll('.nav-tab')[1].classList.add('active');
-  }
-}
-window.showTab = showTab;
-
-/* ------------------------- Estatísticas --------------------------- */
-function updateStats(){
-  const hoje = new Date().toISOString().split('T')[0];
-  const todos = window.appData.infracoes || [];
-  const numHoje   = todos.filter(i=>i.data===hoje).length;
-  const numPend   = todos.filter(i=>i.status==='pendente').length;
-  const numRes    = todos.filter(i=>i.status==='resolvida').length;
-  const semanaIni = new Date(); semanaIni.setDate(semanaIni.getDate()-7);
-  const numSem    = todos.filter(i=>new Date(i.data)>=semanaIni).length;
-
-  if(document.getElementById('ocorrencia-hoje'))        document.getElementById('ocorrencia-hoje').textContent        = numHoje;
-  if(document.getElementById('ocorrencia-semana'))      document.getElementById('ocorrencia-semana').textContent      = numSem;
-  if(document.getElementById('ocorrencia-pendentes'))   document.getElementById('ocorrencia-pendentes').textContent   = numPend;
-  if(document.getElementById('ocorrencia-resolvidas'))  document.getElementById('ocorrencia-resolvidas').textContent  = numRes;
+// Setup do perfil
+async function handleSetupProfile() {
+    const email = document.getElementById('setupEmail')?.value
+    const papel = document.getElementById('setupRole')?.value
+    
+    if (!email || !papel) {
+        alert('Por favor, preencha todos os campos')
+        return
+    }
+    
+    const { error } = await supabase
+        .from('perfis')
+        .insert({
+            user_id: currentUser.id,
+            email: email,
+            papel: papel
+        })
+    
+    if (error) {
+        alert('Erro ao criar perfil: ' + error.message)
+    } else {
+        checkAuthState()
+    }
 }
 
-/* --------------------------- Utilidades --------------------------- */
-function showScreen(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
-  document.getElementById(id)?.classList.remove('hidden');
-}
-function showMsg(msg,type='info'){
-  const box=document.getElementById('message-container');
-  box.textContent=msg; box.className=`msg ${type}`; setTimeout(()=>box.textContent='',4000);
+// Carregar dados do usuário
+async function loadUserData() {
+    // Atualizar interface com informações do usuário
+    const userInfoEl = document.getElementById('userInfo')
+    if (userInfoEl) {
+        userInfoEl.textContent = `${userEmail} (${userRole})`
+    }
+    
+    // Carregar turmas do professor
+    if (userRole === 'teacher') {
+        await loadTeacherTurmas()
+    }
+    
+    // Carregar ocorrências
+    await loadOccurrences()
+    
+    // Se for manager, carregar dados de gestão
+    if (userRole === 'manager') {
+        await loadManagementData()
+    }
 }
 
-/* Expor funções usadas no HTML */
-window.showScreen = showScreen;
+// Carregar turmas do professor
+async function loadTeacherTurmas() {
+    const { data: turmas } = await supabase
+        .from('turmas_prof')
+        .select('turma')
+        .eq('user_id', currentUser.id)
+    
+    const turmaSelect = document.getElementById('turma')
+    if (turmaSelect) {
+        turmaSelect.innerHTML = '<option value="">Selecione uma turma</option>'
+        
+        if (turmas) {
+            turmas.forEach(turma => {
+                const option = document.createElement('option')
+                option.value = turma.turma
+                option.textContent = turma.turma
+                turmaSelect.appendChild(option)
+            })
+        }
+    }
+}
+
+// Carregar ocorrências
+async function loadOccurrences() {
+    let query = supabase
+        .from('ocorrencias')
+        .select('*')
+        .order('data_ocorrencia', { ascending: false })
+    
+    // Se for professor, mostrar apenas suas ocorrências
+    if (userRole === 'teacher') {
+        query = query.eq('professor_email', userEmail)
+    }
+    
+    const { data: ocorrencias } = await query
+    
+    displayOccurrences(ocorrencias || [])
+}
+
+// Exibir ocorrências na lista
+function displayOccurrences(ocorrencias) {
+    const container = document.getElementById('occurrencesList')
+    if (!container) return
+    
+    if (ocorrencias.length === 0) {
+        container.innerHTML = '<p class="no-data">Nenhuma ocorrência encontrada.</p>'
+        return
+    }
+    
+    container.innerHTML = ocorrencias.map(occ => `
+        <div class="occurrence-card status-${occ.status}">
+            <div class="occurrence-header">
+                <span class="date">${new Date(occ.data_ocorrencia).toLocaleString('pt-BR')}</span>
+                <span class="status ${occ.status}">${occ.status}</span>
+            </div>
+            <div class="occurrence-body">
+                <h4>${occ.tipo_ocorrencia}</h4>
+                <p><strong>Aluno:</strong> ${occ.aluno_nome}</p>
+                <p><strong>Turma:</strong> ${occ.turma}</p>
+                <p><strong>Professor:</strong> ${occ.professor_email}</p>
+                <p><strong>Descrição:</strong> ${occ.descricao}</p>
+                ${occ.penalidade ? `<p><strong>Penalidade:</strong> ${occ.penalidade}</p>` : ''}
+                ${occ.observacoes_gestor ? `<p><strong>Observações do Gestor:</strong> ${occ.observacoes_gestor}</p>` : ''}
+                ${userRole === 'manager' && occ.status === 'pendente' ? 
+                    `<button class="resolve-btn" data-id="${occ.id}">Resolver</button>` : ''}
+            </div>
+        </div>
+    `).join('')
+}
+
+// Submeter nova ocorrência
+async function handleReportSubmit(e) {
+    e.preventDefault()
+    
+    const formData = new FormData(e.target)
+    const data = {
+        professor_email: userEmail,
+        turma: formData.get('turma'),
+        aluno_nome: formData.get('aluno_nome'),
+        tipo_ocorrencia: formData.get('tipo_ocorrencia'),
+        descricao: formData.get('descricao'),
+        data_ocorrencia: new Date().toISOString(),
+        status: 'pendente'
+    }
+    
+    const { error } = await supabase
+        .from('ocorrencias')
+        .insert(data)
+    
+    if (error) {
+        alert('Erro ao registrar ocorrência: ' + error.message)
+    } else {
+        alert('Ocorrência registrada com sucesso!')
+        e.target.reset()
+        loadOccurrences()
+    }
+}
+
+// Resolver ocorrência (apenas managers)
+async function handleResolveOccurrence(occurrenceId) {
+    const penalidade = prompt('Digite a penalidade aplicada:')
+    const observacoes = prompt('Observações do gestor (opcional):')
+    
+    if (penalidade === null) return // Usuário cancelou
+    
+    const { error } = await supabase
+        .from('ocorrencias')
+        .update({
+            status: 'resolvida',
+            penalidade: penalidade,
+            observacoes_gestor: observacoes || null,
+            data_resolucao: new Date().toISOString()
+        })
+        .eq('id', occurrenceId)
+    
+    if (error) {
+        alert('Erro ao resolver ocorrência: ' + error.message)
+    } else {
+        alert('Ocorrência resolvida com sucesso!')
+        loadOccurrences()
+    }
+}
+
+// Carregar dados de gestão (apenas para managers)
+async function loadManagementData() {
+    // Carregar todos os perfis
+    const { data: perfis } = await supabase
+        .from('perfis')
+        .select('*')
+        .order('email')
+    
+    displayPerfis(perfis || [])
+    
+    // Carregar todas as turmas
+    const { data: turmas } = await supabase
+        .from('turmas_prof')
+        .select('*, perfis!inner(email)')
+        .order('turma')
+    
+    displayTurmas(turmas || [])
+}
+
+// Exibir perfis (apenas para managers)
+function displayPerfis(perfis) {
+    const container = document.getElementById('perfisList')
+    if (!container) return
+    
+    container.innerHTML = perfis.map(perfil => `
+        <div class="perfil-card">
+            <h4>${perfil.email}</h4>
+            <p>Papel: ${perfil.papel}</p>
+            <p>Criado em: ${new Date(perfil.created_at).toLocaleDateString('pt-BR')}</p>
+        </div>
+    `).join('')
+}
+
+// Exibir turmas (apenas para managers)
+function displayTurmas(turmas) {
+    const container = document.getElementById('turmasList')
+    if (!container) return
+    
+    container.innerHTML = turmas.map(turma => `
+        <div class="turma-card">
+            <h4>${turma.turma}</h4>
+            <p>Professor: ${turma.perfis.email}</p>
+            <p>Vinculado em: ${new Date(turma.created_at).toLocaleDateString('pt-BR')}</p>
+        </div>
+    `).join('')
+}
+
+// Gerenciar perfil (apenas managers)
+async function handleManageProfile() {
+    const email = prompt('Email do usuário:')
+    const papel = prompt('Papel (teacher/manager):')
+    
+    if (!email || !papel) return
+    
+    // Primeiro, verificar se o usuário existe na tabela auth.users
+    const { data: users } = await supabase.auth.admin.listUsers()
+    const user = users.users.find(u => u.email === email)
+    
+    if (!user) {
+        alert('Usuário não encontrado. O usuário precisa se registrar primeiro.')
+        return
+    }
+    
+    const { error } = await supabase
+        .from('perfis')
+        .upsert({
+            user_id: user.id,
+            email: email,
+            papel: papel
+        })
+    
+    if (error) {
+        alert('Erro ao gerenciar perfil: ' + error.message)
+    } else {
+        alert('Perfil atualizado com sucesso!')
+        loadManagementData()
+    }
+}
+
+// Gerenciar turma (apenas managers)
+async function handleManageTurma() {
+    const email = prompt('Email do professor:')
+    const turma = prompt('Nome da turma:')
+    
+    if (!email || !turma) return
+    
+    // Buscar o user_id baseado no email
+    const { data: perfil } = await supabase
+        .from('perfis')
+        .select('user_id')
+        .eq('email', email)
+        .eq('papel', 'teacher')
+        .single()
+    
+    if (!perfil) {
+        alert('Professor não encontrado.')
+        return
+    }
+    
+    const { error } = await supabase
+        .from('turmas_prof')
+        .insert({
+            user_id: perfil.user_id,
+            turma: turma
+        })
+    
+    if (error) {
+        alert('Erro ao vincular turma: ' + error.message)
+    } else {
+        alert('Turma vinculada com sucesso!')
+        loadManagementData()
+    }
+}
+
+// Mostrar tela de login
+function showLogin() {
+    const loginScreen = document.getElementById('loginScreen')
+    const setupScreen = document.getElementById('setupScreen')
+    const appScreen = document.getElementById('appScreen')
+    
+    if (loginScreen) loginScreen.style.display = 'block'
+    if (setupScreen) setupScreen.style.display = 'none'
+    if (appScreen) appScreen.style.display = 'none'
+}
+
+// Mostrar tela de setup
+function showSetup() {
+    const loginScreen = document.getElementById('loginScreen')
+    const setupScreen = document.getElementById('setupScreen')
+    const appScreen = document.getElementById('appScreen')
+    
+    if (loginScreen) loginScreen.style.display = 'none'
+    if (setupScreen) setupScreen.style.display = 'block'
+    if (appScreen) appScreen.style.display = 'none'
+    
+    // Preencher email do usuário logado
+    const setupEmail = document.getElementById('setupEmail')
+    if (setupEmail && currentUser) {
+        setupEmail.value = currentUser.email || ''
+    }
+}
+
+// Mostrar aplicação principal
+function showApp() {
+    const loginScreen = document.getElementById('loginScreen')
+    const setupScreen = document.getElementById('setupScreen')
+    const appScreen = document.getElementById('appScreen')
+    
+    if (loginScreen) loginScreen.style.display = 'none'
+    if (setupScreen) setupScreen.style.display = 'none'
+    if (appScreen) appScreen.style.display = 'block'
+    
+    // Mostrar/ocultar abas baseado no papel do usuário
+    const managerTabs = document.querySelectorAll('.manager-only')
+    managerTabs.forEach(tab => {
+        tab.style.display = userRole === 'manager' ? 'block' : 'none'
+    })
+    
+    // Mostrar primeira aba apropriada
+    showTab(userRole === 'teacher' ? 'report' : 'occurrences')
+}
+
+// Mostrar aba específica
+function showTab(tabName) {
+    // Esconder todas as abas
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.style.display = 'none'
+    })
+    
+    // Remover classe ativa de todos os botões
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active')
+    })
+    
+    // Mostrar aba selecionada
+    const tabContent = document.getElementById(tabName + 'Tab')
+    if (tabContent) {
+        tabContent.style.display = 'block'
+    }
+    
+    // Adicionar classe ativa ao botão
+    const tabBtn = document.querySelector(`[data-tab="${tabName}"]`)
+    if (tabBtn) {
+        tabBtn.classList.add('active')
+    }
+}
+
+// Configurar real-time subscriptions
+function setupRealTimeSubscriptions() {
+    // Escutar mudanças em ocorrências
+    supabase
+        .channel('public:ocorrencias')
+        .on('postgres_changes', 
+            { event: '*', schema: 'public', table: 'ocorrencias' }, 
+            (payload) => {
+                console.log('Mudança em ocorrências:', payload)
+                loadOccurrences()
+            }
+        )
+        .subscribe()
+}
+
+// Inicializar subscriptions quando o app carregar
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(setupRealTimeSubscriptions, 1000)
+})
