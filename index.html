@@ -6,855 +6,1265 @@
     <title>Sistema de Infrações Disciplinares</title>
     <link rel="stylesheet" href="style-adicional.css">
     <style>
-        /* Estilos específicos para demonstração das funções */
-        .demo-section {
+        /* Estilos específicos para compatibilidade com o sistema atual */
+        .screen {
+            min-height: 100vh;
+            padding: var(--space-24);
+        }
+        
+        .screen.hidden {
+            display: none;
+        }
+        
+        .screen.active {
+            display: block;
+        }
+        
+        .user-type-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-20);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .user-type-btn {
+            padding: var(--space-32);
+            border: 2px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            background: var(--color-surface);
+            cursor: pointer;
+            transition: all var(--duration-normal) var(--ease-standard);
+            text-align: center;
+            text-decoration: none;
+            color: var(--color-text);
+        }
+        
+        .user-type-btn:hover {
+            border-color: var(--color-primary);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+        
+        .user-type-btn h3 {
+            margin: 0 0 var(--space-12) 0;
+            color: var(--color-primary);
+        }
+        
+        .nav-tab {
+            padding: var(--space-12) var(--space-24);
+            border: none;
+            background: none;
+            color: var(--color-text-secondary);
+            font-weight: var(--font-weight-medium);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all var(--duration-normal) var(--ease-standard);
+        }
+        
+        .nav-tab:hover {
+            color: var(--color-primary);
+            background-color: var(--color-secondary);
+        }
+        
+        .nav-tab.active {
+            color: var(--color-primary);
+            border-bottom-color: var(--color-primary);
+        }
+        
+        .tab-content {
+            display: none;
+            padding: var(--space-24) 0;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-20);
+            margin-bottom: var(--space-32);
+        }
+        
+        .stat-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-card-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-24);
+            text-align: center;
+            transition: all var(--duration-normal) var(--ease-standard);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .stat-card h3 {
+            font-size: var(--font-size-4xl);
+            color: var(--color-primary);
+            margin: 0 0 var(--space-8) 0;
+        }
+        
+        .stat-card p {
+            margin: 0;
+            color: var(--color-text-secondary);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+        }
+        
+        .infraction-item {
+            background: var(--color-surface);
+            border: 1px solid var(--color-card-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-20);
+            margin-bottom: var(--space-16);
+            transition: all var(--duration-normal) var(--ease-standard);
+        }
+        
+        .infraction-item:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+        }
+        
+        .status-pendente {
+            border-left: 4px solid var(--color-warning);
+        }
+        
+        .status-resolvida {
+            border-left: 4px solid var(--color-success);
+        }
+        
+        .infraction-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--space-12);
+        }
+        
+        .infraction-title {
+            margin: 0;
+            color: var(--color-primary);
+            font-size: var(--font-size-lg);
+        }
+        
+        .infraction-date {
+            color: var(--color-text-secondary);
+            font-size: var(--font-size-sm);
+        }
+        
+        .infraction-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--space-12);
+            margin-bottom: var(--space-16);
+        }
+        
+        .infraction-detail {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-4);
+        }
+        
+        .detail-label {
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+            font-weight: var(--font-weight-medium);
+        }
+        
+        .detail-value {
+            color: var(--color-text);
+            font-weight: var(--font-weight-medium);
+        }
+        
+        .infraction-description {
+            background: var(--color-secondary);
+            padding: var(--space-12);
+            border-radius: var(--radius-base);
+            margin-bottom: var(--space-16);
+            font-size: var(--font-size-sm);
+            line-height: 1.5;
+        }
+        
+        .infraction-actions {
+            display: flex;
+            gap: var(--space-12);
+            justify-content: flex-end;
+        }
+        
+        .penalty-info {
+            display: flex;
+            align-items: center;
+            gap: var(--space-12);
+            justify-content: space-between;
+        }
+        
+        .penalty-badge {
+            background: var(--color-success);
+            color: white;
+            padding: var(--space-6) var(--space-12);
+            border-radius: var(--radius-full);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: var(--space-32);
+            color: var(--color-text-secondary);
+        }
+        
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: var(--space-16);
+        }
+        
+        .filters {
+            display: flex;
+            gap: var(--space-12);
+            margin-bottom: var(--space-24);
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+        
+        .filters > * {
+            min-width: 150px;
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal.hidden {
+            display: none;
+        }
+        
+        .modal-content {
+            background: var(--color-surface);
+            border-radius: var(--radius-lg);
+            padding: var(--space-32);
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-24);
+            border-bottom: 1px solid var(--color-border);
+            padding-bottom: var(--space-16);
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: var(--font-size-2xl);
+            cursor: pointer;
+            color: var(--color-text-secondary);
+            padding: 0;
+        }
+        
+        .summary-title {
+            font-size: var(--font-size-xl);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-primary);
+            margin-bottom: var(--space-12);
+        }
+        
+        .summary-details {
             background: var(--color-secondary);
             padding: var(--space-16);
             border-radius: var(--radius-base);
-            margin: var(--space-16) 0;
+            margin-bottom: var(--space-24);
+            line-height: 1.6;
         }
         
-        .demo-button {
-            margin: var(--space-8);
+        .message {
             padding: var(--space-12) var(--space-16);
-            background: var(--color-primary);
-            color: white;
-            border: none;
             border-radius: var(--radius-base);
-            cursor: pointer;
+            margin-bottom: var(--space-16);
+            font-weight: var(--font-weight-medium);
         }
         
-        .demo-button:hover {
-            background: var(--color-primary-hover);
+        .message.success {
+            background: rgba(var(--color-teal-500-rgb), 0.1);
+            border: 1px solid var(--color-success);
+            color: var(--color-success);
         }
-
-        .resultado {
-            background: var(--color-surface);
-            border: 1px solid var(--color-border);
-            padding: var(--space-12);
-            margin-top: var(--space-12);
-            border-radius: var(--radius-base);
-            max-height: 300px;
-            overflow-y: auto;
+        
+        .message.error {
+            background: rgba(var(--color-red-500-rgb), 0.1);
+            border: 1px solid var(--color-error);
+            color: var(--color-error);
+        }
+        
+        #message-container {
+            position: fixed;
+            top: var(--space-20);
+            right: var(--space-20);
+            z-index: 1001;
+            max-width: 400px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .user-type-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .filters > * {
+                min-width: auto;
+            }
+            
+            .infraction-header {
+                flex-direction: column;
+                gap: var(--space-8);
+            }
+            
+            .infraction-details {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: var(--space-12);
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Tela de Login -->
-    <div id="loginScreen" class="screen">
+    <!-- Container de Mensagens -->
+    <div id="message-container"></div>
+    
+    <!-- Tela de Seleção de Tipo de Usuário -->
+    <div id="login-screen" class="screen active">
         <div class="login-container">
             <h1>Sistema de Infrações Disciplinares</h1>
             <div class="login-card">
-                <h2>Faça login para acessar o sistema</h2>
-                
-                <!-- Formulário de Login -->
-                <form id="loginForm">
-                    <div class="input-group">
-                        <label for="loginEmail">Email:</label>
-                        <input type="email" id="loginEmail" required>
-                    </div>
-                    <div class="input-group">
-                        <label for="loginPassword">Senha:</label>
-                        <input type="password" id="loginPassword" required>
-                    </div>
-                    <button type="button" id="loginBtn" class="primary-btn">Entrar</button>
-                </form>
-
-                <p class="auth-link">Não tem conta? <a href="#" id="showSignupLink">Cadastre-se</a></p>
-
-                <!-- Seção de Demonstração das Funções -->
-                <div class="demo-section">
-                    <h3>🧪 Teste das Funções do Supabase</h3>
-                    <p><small>Use estes botões para testar as funções do sistema:</small></p>
-                    
-                    <button class="demo-button" onclick="testarConexaoSupabase()">
-                        🔗 Testar Conexão
-                    </button>
-                    
-                    <button class="demo-button" onclick="testarLogin()">
-                        🔑 Testar Login
-                    </button>
-                    
-                    <button class="demo-button" onclick="testarCadastro()">
-                        ➕ Testar Cadastro
-                    </button>
-                    
-                    <div id="resultadoTeste" class="resultado" style="display:none;"></div>
+                <h2>Selecione seu tipo de acesso</h2>
+                <div class="user-type-buttons">
+                    <a href="#" class="user-type-btn" onclick="showLogin('professor')">
+                        <h3>👨‍🏫 Professor</h3>
+                        <p>Registrar infrações e acompanhar ocorrências da sua disciplina</p>
+                    </a>
+                    <a href="#" class="user-type-btn" onclick="showLogin('gestor')">
+                        <h3>👔 Gestor</h3>
+                        <p>Gerenciar infrações, aplicar penalidades e visualizar relatórios</p>
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Tela de Cadastro -->
-    <div id="signupScreen" class="screen" style="display: none;">
+    <!-- Tela de Login -->
+    <div id="login-form" class="screen hidden">
         <div class="login-container">
-            <h1>Criar Conta</h1>
+            <h1>Login - <span id="login-type">Usuário</span></h1>
             <div class="login-card">
-                <h2>Cadastre-se no sistema</h2>
-                
-                <form id="signupForm">
+                <form id="loginForm">
                     <div class="input-group">
-                        <label for="signupEmail">Email:</label>
-                        <input type="email" id="signupEmail" required>
-                    </div>
-                    <div class="input-group">
-                        <label for="signupPassword">Senha:</label>
-                        <input type="password" id="signupPassword" required minlength="6">
-                    </div>
-                    <div class="input-group">
-                        <label for="signupConfirm">Confirmar Senha:</label>
-                        <input type="password" id="signupConfirm" required minlength="6">
-                    </div>
-                    <button type="button" id="signupBtn" class="primary-btn">Criar Conta</button>
-                </form>
-
-                <p class="auth-link">Já tem conta? <a href="#" id="showLoginLink">Fazer login</a></p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tela de Setup do Perfil -->
-    <div id="setupScreen" class="screen" style="display: none;">
-        <div class="setup-container">
-            <h1>Configurar Perfil</h1>
-            <div class="setup-card">
-                <h2>Complete seu perfil</h2>
-                
-                <form id="setupForm">
-                    <div class="input-group">
-                        <label for="setupEmail">Email:</label>
-                        <input type="email" id="setupEmail" readonly>
-                    </div>
-                    <div class="input-group">
-                        <label for="setupNome">Nome Completo:</label>
-                        <input type="text" id="setupNome" required>
-                    </div>
-                    <div class="input-group">
-                        <label for="setupRole">Papel:</label>
-                        <select id="setupRole" required>
-                            <option value="">Selecionar papel</option>
-                            <option value="teacher">Professor</option>
-                            <option value="manager">Gestor</option>
+                        <label for="userSelect">Selecione seu usuário:</label>
+                        <select id="userSelect" required>
+                            <option value="">Escolha...</option>
                         </select>
                     </div>
-                    <button type="button" id="setupProfileBtn" class="primary-btn">Completar Perfil</button>
+                    <button type="submit" class="primary-btn">Entrar no Sistema</button>
                 </form>
+                <p class="auth-link">
+                    <a href="#" onclick="showScreen('login-screen')">← Voltar à seleção</a>
+                </p>
             </div>
         </div>
     </div>
 
-    <!-- Aplicação Principal -->
-    <div id="appScreen" class="screen" style="display: none;">
-        <!-- Header -->
+    <!-- Tela do Professor -->
+    <div id="professor-screen" class="screen hidden">
         <header class="header">
-            <h1>Sistema de Infrações Disciplinares</h1>
+            <h1>Sistema de Infrações - Professor</h1>
             <div class="user-info">
-                <span id="userInfo">Carregando...</span>
-                <button id="logoutBtn" class="secondary-btn">Sair</button>
+                <span id="professor-name">Professor</span>
+                <button onclick="logout()" class="secondary-btn">Sair</button>
             </div>
         </header>
 
+        <main class="main-content">
+            <div class="card">
+                <h2>📝 Registrar Nova Infração</h2>
+                <form id="infracaoForm">
+                    <input type="hidden" id="professorField">
+                    
+                    <div class="row">
+                        <div class="input-group">
+                            <label for="alunoSelect">Aluno:</label>
+                            <select id="alunoSelect" required>
+                                <option value="">Selecione o aluno...</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="turmaField">Turma:</label>
+                            <input type="text" id="turmaField" readonly>
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="dataHoraField">Data e Hora:</label>
+                        <input type="text" id="dataHoraField" readonly>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="descricaoField">Descrição da Infração:</label>
+                        <select id="descricaoField" required>
+                            <option value="">Selecione o tipo de infração</option>
+                            <option value="Uso de celular durante a aula">📱 Uso de celular durante a aula</option>
+                            <option value="Conversa excessiva durante a explicação">💬 Conversa excessiva durante a explicação</option>
+                            <option value="Comportamento inadequado">😤 Comportamento inadequado</option>
+                            <option value="Não trouxe material escolar">📚 Não trouxe material escolar</option>
+                            <option value="Atraso para a aula">⏰ Atraso para a aula</option>
+                            <option value="Desrespeito com colegas ou professor">🚫 Desrespeito com colegas ou professor</option>
+                            <option value="Outras infrações disciplinares">❓ Outras infrações disciplinares</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="observacoesField">Observações Adicionais:</label>
+                        <textarea id="observacoesField" rows="3" 
+                                  placeholder="Descreva mais detalhes sobre a ocorrência..."></textarea>
+                    </div>
+                    
+                    <button type="submit" class="primary-btn">📋 Registrar Infração</button>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <!-- Tela do Gestor -->
+    <div id="gestor-screen" class="screen hidden">
+        <header class="header">
+            <h1>Sistema de Infrações - Gestão</h1>
+            <div class="user-info">
+                <span id="gestor-name">Gestor</span>
+                <button onclick="logout()" class="secondary-btn">Sair</button>
+            </div>
+        </header>
+
+        <!-- Estatísticas -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3 id="infracoes-hoje">0</h3>
+                <p>Infrações Hoje</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="infracoes-semana">0</h3>
+                <p>Esta Semana</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="infracoes-pendentes">0</h3>
+                <p>Pendentes</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="infracoes-resolvidas">0</h3>
+                <p>Resolvidas</p>
+            </div>
+        </div>
+
         <!-- Navegação por Abas -->
         <nav class="tabs">
-            <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
-            <button class="tab-btn" data-tab="registrar">Registrar Ocorrência</button>
-            <button class="tab-btn" data-tab="ocorrencias">Minhas Ocorrências</button>
-            <button class="tab-btn manager-only" data-tab="gerenciar">Gerenciar Sistema</button>
-            <button class="tab-btn manager-only" data-tab="usuarios">Usuários</button>
-            <button class="tab-btn manager-only" data-tab="estatisticas">Estatísticas</button>
+            <button class="nav-tab active" onclick="showTab('pendentes')">Infrações Pendentes</button>
+            <button class="nav-tab" onclick="showTab('historico')">Histórico</button>
         </nav>
 
         <!-- Conteúdo das Abas -->
         <main class="main-content">
-            <!-- Aba Dashboard -->
-            <div id="dashboardTab" class="tab-content">
+            <!-- Aba Pendentes -->
+            <div id="tab-pendentes" class="tab-content active">
                 <div class="card">
-                    <h2>🏠 Dashboard Principal</h2>
-                    <p>Bem-vindo ao sistema de gestão de infrações disciplinares!</p>
-                    
-                    <!-- Demonstração das Funções Supabase -->
-                    <div class="demo-section">
-                        <h3>🛠️ Demonstração das Funções</h3>
-                        <p>Clique nos botões abaixo para testar as funções do Supabase:</p>
-                        
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
-                            <button class="demo-button" onclick="demonstrarBuscarPerfis()">
-                                👥 Buscar Perfis
-                            </button>
-                            <button class="demo-button" onclick="demonstrarBuscarTurmas()">
-                                📚 Buscar Turmas
-                            </button>
-                            <button class="demo-button" onclick="demonstrarBuscarOcorrencias()">
-                                📋 Buscar Ocorrências
-                            </button>
-                            <button class="demo-button" onclick="demonstrarEstatisticas()">
-                                📊 Ver Estatísticas
-                            </button>
-                        </div>
-                        
-                        <div id="resultadoDemonstracao" class="resultado" style="display:none;"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Aba Registrar Ocorrência -->
-            <div id="registrarTab" class="tab-content" style="display: none;">
-                <div class="card">
-                    <h2>📝 Registrar Nova Ocorrência</h2>
-                    
-                    <form id="ocorrenciaForm">
-                        <div class="row">
-                            <div class="input-group">
-                                <label for="turmaSelect">Turma:</label>
-                                <select id="turmaSelect" required>
-                                    <option value="">Carregando turmas...</option>
-                                </select>
-                            </div>
-                            <div class="input-group">
-                                <label for="alunoNome">Nome do Aluno:</label>
-                                <input type="text" id="alunoNome" required>
-                            </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="input-group">
-                                <label for="tipoOcorrencia">Tipo de Ocorrência:</label>
-                                <select id="tipoOcorrencia" required>
-                                    <option value="">Selecione o tipo</option>
-                                    <option value="Uso de celular durante a aula">📱 Uso de celular</option>
-                                    <option value="Conversa excessiva">💬 Conversa excessiva</option>
-                                    <option value="Não fez a atividade">📝 Não fez atividade</option>
-                                    <option value="Comportamento inadequado">😤 Comportamento inadequado</option>
-                                    <option value="Atraso">⏰ Atraso</option>
-                                    <option value="Desrespeito">🚫 Desrespeito</option>
-                                    <option value="Outros">❓ Outros</option>
-                                </select>
-                            </div>
-                            <div class="input-group">
-                                <label for="gravidadeSelect">Gravidade:</label>
-                                <select id="gravidadeSelect" required>
-                                    <option value="leve">🟢 Leve</option>
-                                    <option value="media" selected>🟡 Média</option>
-                                    <option value="grave">🔴 Grave</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="descricaoOcorrencia">Descrição Detalhada:</label>
-                            <textarea id="descricaoOcorrencia" rows="4" required 
-                                     placeholder="Descreva o que aconteceu de forma detalhada..."></textarea>
-                        </div>
-                        
-                        <button type="submit" class="primary-btn">📋 Registrar Ocorrência</button>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Aba Ocorrências -->
-            <div id="ocorrenciasTab" class="tab-content" style="display: none;">
-                <div class="card">
-                    <h2>📋 Minhas Ocorrências</h2>
+                    <h2>⏳ Infrações Pendentes</h2>
                     
                     <!-- Filtros -->
                     <div class="filters">
-                        <select id="filtroStatus">
-                            <option value="">Todos os Status</option>
-                            <option value="pendente">⏳ Pendentes</option>
-                            <option value="resolvida">✅ Resolvidas</option>
-                        </select>
-                        <select id="filtroTurma">
-                            <option value="">Todas as Turmas</option>
-                        </select>
-                        <button onclick="carregarOcorrenciasComFiltros()" class="secondary-btn">🔍 Filtrar</button>
-                        <button onclick="carregarMinhasOcorrencias()" class="primary-btn">🔄 Atualizar</button>
-                    </div>
-                    
-                    <div id="listaOcorrencias">
-                        <p>Carregando ocorrências...</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Aba Gerenciar (apenas gestores) -->
-            <div id="gerenciarTab" class="tab-content manager-only" style="display: none;">
-                <div class="card">
-                    <h2>⚙️ Gerenciar Sistema</h2>
-                    
-                    <!-- Gestão de Turmas -->
-                    <h3>📚 Vincular Turmas</h3>
-                    <form id="turmaForm" style="margin-bottom: 24px;">
-                        <div class="row">
-                            <div class="input-group">
-                                <label for="professorEmail">Email do Professor:</label>
-                                <input type="email" id="professorEmail" required>
-                            </div>
-                            <div class="input-group">
-                                <label for="nomeTurma">Nome da Turma:</label>
-                                <input type="text" id="nomeTurma" required placeholder="Ex: 7°A, 8°B, 1°EM-A">
-                            </div>
-                        </div>
-                        <button type="submit" class="primary-btn">🔗 Vincular Turma</button>
-                    </form>
-                    
-                    <!-- Resolução de Ocorrências -->
-                    <h3>⚖️ Resolver Ocorrências Pendentes</h3>
-                    <button onclick="carregarOcorrenciasPendentes()" class="secondary-btn">📋 Ver Pendentes</button>
-                    <div id="ocorrenciasPendentes" style="margin-top: 16px;"></div>
-                </div>
-            </div>
-
-            <!-- Aba Usuários (apenas gestores) -->
-            <div id="usuariosTab" class="tab-content manager-only" style="display: none;">
-                <div class="card">
-                    <h2>👥 Gerenciar Usuários</h2>
-                    
-                    <!-- Criar Novo Usuário -->
-                    <h3>➕ Criar Novo Usuário</h3>
-                    <form id="novoUsuarioForm" style="margin-bottom: 24px;">
-                        <div class="row">
-                            <div class="input-group">
-                                <label for="novoEmail">Email:</label>
-                                <input type="email" id="novoEmail" required>
-                            </div>
-                            <div class="input-group">
-                                <label for="novaSenha">Senha Temporária:</label>
-                                <input type="password" id="novaSenha" required minlength="6">
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="input-group">
-                                <label for="novoNome">Nome Completo:</label>
-                                <input type="text" id="novoNome" required>
-                            </div>
-                            <div class="input-group">
-                                <label for="novoPapel">Papel:</label>
-                                <select id="novoPapel" required>
-                                    <option value="">Selecionar</option>
-                                    <option value="teacher">👨‍🏫 Professor</option>
-                                    <option value="manager">👔 Gestor</option>
-                                </select>
-                            </div>
-                        </div>
-                        <button type="submit" class="primary-btn">👤 Criar Usuário</button>
-                    </form>
-                    
-                    <!-- Lista de Usuários -->
-                    <h3>📋 Usuários Cadastrados</h3>
-                    <button onclick="carregarListaUsuarios()" class="secondary-btn">🔄 Atualizar Lista</button>
-                    <div id="listaUsuarios" style="margin-top: 16px;">
-                        <p>Clique em "Atualizar Lista" para ver os usuários.</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Aba Estatísticas (apenas gestores) -->
-            <div id="estatisticasTab" class="tab-content manager-only" style="display: none;">
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <h3 id="statHoje">0</h3>
-                        <p>Ocorrências Hoje</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3 id="statPendentes">0</h3>
-                        <p>Pendentes</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3 id="statResolvidas">0</h3>
-                        <p>Resolvidas</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3 id="statUsuarios">0</h3>
-                        <p>Usuários</p>
-                    </div>
-                </div>
-                
-                <div class="card">
-                    <h2>📊 Relatório Detalhado</h2>
-                    <div class="row">
                         <div class="input-group">
-                            <label for="dataInicio">Data Início:</label>
-                            <input type="date" id="dataInicio">
+                            <label for="filtro-professor">Professor:</label>
+                            <select id="filtro-professor">
+                                <option value="">Todos os professores</option>
+                            </select>
                         </div>
                         <div class="input-group">
-                            <label for="dataFim">Data Fim:</label>
-                            <input type="date" id="dataFim">
+                            <label for="filtro-turma">Turma:</label>
+                            <select id="filtro-turma">
+                                <option value="">Todas as turmas</option>
+                            </select>
                         </div>
+                        <div class="input-group">
+                            <label for="filtro-data">Data:</label>
+                            <input type="date" id="filtro-data">
+                        </div>
+                        <button onclick="limparFiltros()" class="secondary-btn">🔄 Limpar</button>
                     </div>
-                    <button onclick="gerarRelatorio()" class="primary-btn">📈 Gerar Relatório</button>
-                    <div id="relatorioResultado" style="margin-top: 16px;"></div>
+                    
+                    <div id="infracoes-pendentes-list"></div>
+                </div>
+            </div>
+
+            <!-- Aba Histórico -->
+            <div id="tab-historico" class="tab-content hidden">
+                <div class="card">
+                    <h2>📚 Histórico de Infrações Resolvidas</h2>
+                    <div id="infracoes-historico-list"></div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Scripts -->
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script src="supabase-funcoes.js"></script>
-    
-    <!-- Script de Interface e Demonstrações -->
+    <!-- Modal de Penalidade -->
+    <div id="penalidade-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚖️ Aplicar Penalidade</h2>
+                <button type="button" class="modal-close" onclick="fecharModal()">&times;</button>
+            </div>
+            
+            <div id="infraction-summary"></div>
+            
+            <form id="penalidadeForm">
+                <div class="input-group">
+                    <label for="penalidade-select">Selecione a penalidade:</label>
+                    <select id="penalidade-select" required>
+                        <option value="">Escolha a penalidade...</option>
+                    </select>
+                </div>
+                
+                <div class="row" style="justify-content: flex-end; margin-top: var(--space-24);">
+                    <button type="button" onclick="fecharModal()" class="secondary-btn">Cancelar</button>
+                    <button type="submit" class="primary-btn">✅ Aplicar Penalidade</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Script do Sistema -->
     <script>
-        // ===================================================================
-        // FUNÇÕES DE INTERFACE E DEMONSTRAÇÃO
-        // ===================================================================
+        // Dados da aplicação
+        const appData = {
+            "professores": [
+                {"id": 1, "nome": "Prof. Maria Silva", "disciplina": "Matemática"},
+                {"id": 2, "nome": "Prof. João Santos", "disciplina": "História"},
+                {"id": 3, "nome": "Prof. Ana Costa", "disciplina": "Português"},
+                {"id": 4, "nome": "Prof. Carlos Lima", "disciplina": "Ciências"},
+                {"id": 5, "nome": "Prof. Paula Oliveira", "disciplina": "Geografia"}
+            ],
+            "alunos": [
+                {"id": 1, "nome": "Pedro Henrique", "turma": "9°A"},
+                {"id": 2, "nome": "Amanda Silva", "turma": "8°B"},
+                {"id": 3, "nome": "Lucas Ferreira", "turma": "9°A"},
+                {"id": 4, "nome": "Júlia Santos", "turma": "7°C"},
+                {"id": 5, "nome": "Gabriel Costa", "turma": "8°A"},
+                {"id": 6, "nome": "Mariana Lima", "turma": "9°B"},
+                {"id": 7, "nome": "Rafael Oliveira", "turma": "7°A"},
+                {"id": 8, "nome": "Isabela Souza", "turma": "8°B"},
+                {"id": 9, "nome": "Thiago Pereira", "turma": "9°A"},
+                {"id": 10, "nome": "Larissa Martins", "turma": "7°B"},
+                {"id": 11, "nome": "Bruno Alves", "turma": "8°C"},
+                {"id": 12, "nome": "Camila Rocha", "turma": "9°B"},
+                {"id": 13, "nome": "Diego Silva", "turma": "7°A"},
+                {"id": 14, "nome": "Fernanda Costa", "turma": "8°A"},
+                {"id": 15, "nome": "Mateus Santos", "turma": "9°C"}
+            ],
+            "turmas": ["7°A", "7°B", "7°C", "8°A", "8°B", "8°C", "9°A", "9°B", "9°C"],
+            "tiposPenalidade": [
+                "Advertência Verbal",
+                "Advertência Escrita", 
+                "Suspensão de Recreio",
+                "Comunicado aos Pais",
+                "Suspensão de 1 dia",
+                "Suspensão de 3 dias"
+            ],
+            "infracoes": [
+                {
+                    "id": 1,
+                    "professor": "Prof. Maria Silva",
+                    "aluno": "Pedro Henrique",
+                    "turma": "9°A",
+                    "data": "2025-09-28",
+                    "hora": "10:30",
+                    "descricao": "Uso de celular durante explicação de matemática",
+                    "observacoes": "Aluno estava jogando durante a aula",
+                    "status": "pendente"
+                },
+                {
+                    "id": 2,
+                    "professor": "Prof. João Santos", 
+                    "aluno": "Amanda Silva",
+                    "turma": "8°B",
+                    "data": "2025-09-28",
+                    "hora": "14:15",
+                    "descricao": "Uso de celular durante a aula",
+                    "observacoes": "Estava enviando mensagens",
+                    "status": "pendente"
+                },
+                {
+                    "id": 3,
+                    "professor": "Prof. Ana Costa",
+                    "aluno": "Lucas Ferreira", 
+                    "turma": "9°A",
+                    "data": "2025-09-27",
+                    "hora": "08:45",
+                    "descricao": "Uso de celular durante a aula",
+                    "observacoes": "Terceira ocorrência do aluno",
+                    "status": "resolvida",
+                    "penalidade": "Comunicado aos Pais",
+                    "dataResolucao": "2025-09-27"
+                },
+                {
+                    "id": 4,
+                    "professor": "Prof. Carlos Lima",
+                    "aluno": "Júlia Santos",
+                    "turma": "7°C", 
+                    "data": "2025-09-28",
+                    "hora": "11:20",
+                    "descricao": "Uso de celular durante experimento",
+                    "observacoes": "Filmando a aula sem autorização",
+                    "status": "pendente"
+                },
+                {
+                    "id": 5,
+                    "professor": "Prof. Paula Oliveira",
+                    "aluno": "Gabriel Costa",
+                    "turma": "8°A",
+                    "data": "2025-09-26",
+                    "hora": "16:00",
+                    "descricao": "Uso de celular durante a aula",
+                    "observacoes": "Atendeu ligação durante aula",
+                    "status": "resolvida", 
+                    "penalidade": "Advertência Escrita",
+                    "dataResolucao": "2025-09-27"
+                },
+                {
+                    "id": 6,
+                    "professor": "Prof. Maria Silva",
+                    "aluno": "Mariana Lima",
+                    "turma": "9°B",
+                    "data": "2025-09-25",
+                    "hora": "09:15",
+                    "descricao": "Uso de celular durante a aula", 
+                    "observacoes": "Primeira ocorrência",
+                    "status": "resolvida",
+                    "penalidade": "Advertência Verbal",
+                    "dataResolucao": "2025-09-25"
+                },
+                {
+                    "id": 7,
+                    "professor": "Prof. João Santos",
+                    "aluno": "Rafael Oliveira",
+                    "turma": "7°A",
+                    "data": "2025-09-28",
+                    "hora": "13:30",
+                    "descricao": "Uso de celular durante a aula",
+                    "observacoes": "Ouvindo música com fones",
+                    "status": "pendente"
+                },
+                {
+                    "id": 8,
+                    "professor": "Prof. Ana Costa", 
+                    "aluno": "Isabela Souza",
+                    "turma": "8°B",
+                    "data": "2025-09-26",
+                    "hora": "07:50",
+                    "descricao": "Uso de celular durante a aula",
+                    "observacoes": "Segunda ocorrência da semana",
+                    "status": "resolvida",
+                    "penalidade": "Suspensão de Recreio", 
+                    "dataResolucao": "2025-09-26"
+                }
+            ]
+        };
+
+        // Estado da aplicação
+        let currentUser = null;
+        let currentUserType = null;
+        let currentInfractionId = null;
+
+        // Inicialização da aplicação
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        function initializeApp() {
+            // Configurar eventos de formulários
+            setupFormEvents();
+            
+            // Atualizar data e hora atual
+            updateCurrentDateTime();
+        }
+
+        function setupFormEvents() {
+            // Login form
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                loginForm.addEventListener('submit', handleLogin);
+            }
+            
+            // Infração form
+            const infracaoForm = document.getElementById('infracaoForm');
+            if (infracaoForm) {
+                infracaoForm.addEventListener('submit', handleInfracaoSubmit);
+            }
+            
+            // Penalidade form
+            const penalidadeForm = document.getElementById('penalidadeForm');
+            if (penalidadeForm) {
+                penalidadeForm.addEventListener('submit', handlePenalidadeSubmit);
+            }
+            
+            // Aluno select change
+            const alunoSelect = document.getElementById('alunoSelect');
+            if (alunoSelect) {
+                alunoSelect.addEventListener('change', updateTurmaField);
+            }
+            
+            // Filtros
+            setupFilters();
+        }
+
+        function setupFilters() {
+            const filtros = ['filtro-professor', 'filtro-turma', 'filtro-data'];
+            filtros.forEach(filtroId => {
+                const filtro = document.getElementById(filtroId);
+                if (filtro) {
+                    filtro.addEventListener('change', applyFilters);
+                }
+            });
+        }
 
         // Navegação entre telas
-        document.getElementById('showSignupLink')?.addEventListener('click', (e) => {
-            e.preventDefault();
-            mostrarTela('signupScreen');
-        });
-
-        document.getElementById('showLoginLink')?.addEventListener('click', (e) => {
-            e.preventDefault();
-            mostrarTela('loginScreen');
-        });
-
-        // Botões principais
-        document.getElementById('loginBtn')?.addEventListener('click', async () => {
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
+        function showScreen(screenId) {
+            // Esconder todas as telas
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+                screen.classList.add('hidden');
+            });
             
-            if (await SupabaseFuncoes.fazerLogin(email, password)) {
-                mostrarTela('appScreen');
-                carregarDadosIniciais();
+            // Mostrar tela solicitada
+            const targetScreen = document.getElementById(screenId);
+            if (targetScreen) {
+                targetScreen.classList.remove('hidden');
+                targetScreen.classList.add('active');
             }
-        });
+        }
 
-        document.getElementById('signupBtn')?.addEventListener('click', async () => {
-            const email = document.getElementById('signupEmail').value;
-            const password = document.getElementById('signupPassword').value;
-            const confirm = document.getElementById('signupConfirm').value;
+        function showLogin(userType) {
+            currentUserType = userType;
             
-            if (password !== confirm) {
-                alert('Senhas não coincidem!');
+            // Atualizar título
+            const loginTypeSpan = document.getElementById('login-type');
+            if (loginTypeSpan) {
+                loginTypeSpan.textContent = userType === 'professor' ? 'Professor' : 'Gestor';
+            }
+            
+            // Carregar opções do select
+            const userSelect = document.getElementById('userSelect');
+            if (userSelect) {
+                userSelect.innerHTML = '<option value="">Escolha...</option>';
+                
+                if (userType === 'professor') {
+                    appData.professores.forEach(prof => {
+                        const option = document.createElement('option');
+                        option.value = prof.id;
+                        option.textContent = prof.nome;
+                        userSelect.appendChild(option);
+                    });
+                } else {
+                    // Para gestor, adicionar opção genérica
+                    const option = document.createElement('option');
+                    option.value = 'gestor';
+                    option.textContent = 'Coordenação Pedagógica';
+                    userSelect.appendChild(option);
+                }
+            }
+            
+            showScreen('login-form');
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            
+            const userSelect = document.getElementById('userSelect');
+            const selectedValue = userSelect.value;
+            
+            if (!selectedValue) {
+                showMessage('Por favor, selecione um usuário', 'error');
                 return;
             }
             
-            if (await SupabaseFuncoes.cadastrarUsuario(email, password)) {
-                mostrarTela('loginScreen');
+            if (currentUserType === 'professor') {
+                const professor = appData.professores.find(p => p.id == selectedValue);
+                currentUser = professor;
+                
+                // Atualizar interface do professor
+                const professorNameElement = document.getElementById('professor-name');
+                const professorFieldElement = document.getElementById('professorField');
+                
+                if (professorNameElement) professorNameElement.textContent = professor.nome;
+                if (professorFieldElement) professorFieldElement.value = professor.nome;
+                
+                // Carregar opções para o professor
+                loadProfessorSelectOptions();
+                
+                showScreen('professor-screen');
+            } else {
+                currentUser = { nome: 'Coordenação Pedagógica', tipo: 'gestor' };
+                
+                // Atualizar interface do gestor
+                const gestorNameElement = document.getElementById('gestor-name');
+                if (gestorNameElement) gestorNameElement.textContent = 'Coordenação Pedagógica';
+                
+                // Carregar dados do gestor
+                loadGestorData();
+                
+                showScreen('gestor-screen');
             }
-        });
-
-        document.getElementById('setupProfileBtn')?.addEventListener('click', async () => {
-            const email = document.getElementById('setupEmail').value;
-            const nome = document.getElementById('setupNome').value;
-            const papel = document.getElementById('setupRole').value;
             
-            if (await SupabaseFuncoes.criarPerfil(email, papel, nome)) {
-                mostrarTela('appScreen');
-                carregarDadosIniciais();
-            }
-        });
+            showMessage('Login realizado com sucesso!', 'success');
+        }
 
-        document.getElementById('logoutBtn')?.addEventListener('click', () => {
-            SupabaseFuncoes.fazerLogout();
-        });
+        function logout() {
+            currentUser = null;
+            currentUserType = null;
+            showScreen('login-screen');
+            showMessage('Logout realizado com sucesso!', 'success');
+        }
+
+        // Funções do Professor
+        function loadProfessorSelectOptions() {
+            // Carregar alunos
+            const alunoSelect = document.getElementById('alunoSelect');
+            if (alunoSelect) {
+                alunoSelect.innerHTML = '<option value="">Selecione o aluno...</option>';
+                appData.alunos.forEach(aluno => {
+                    const option = document.createElement('option');
+                    option.value = aluno.id;
+                    option.textContent = aluno.nome;
+                    option.dataset.turma = aluno.turma;
+                    alunoSelect.appendChild(option);
+                });
+            }
+        }
+
+        function loadGestorSelectOptions() {
+            // Carregar penalidades
+            const penalidadeSelect = document.getElementById('penalidade-select');
+            if (penalidadeSelect) {
+                penalidadeSelect.innerHTML = '<option value="">Escolha a penalidade...</option>';
+                appData.tiposPenalidade.forEach(penalidade => {
+                    const option = document.createElement('option');
+                    option.value = penalidade;
+                    option.textContent = penalidade;
+                    penalidadeSelect.appendChild(option);
+                });
+            }
+        }
+
+        function updateTurmaField() {
+            const alunoSelect = document.getElementById('alunoSelect');
+            const turmaField = document.getElementById('turmaField');
+            
+            if (alunoSelect && turmaField && alunoSelect.value) {
+                const selectedOption = alunoSelect.options[alunoSelect.selectedIndex];
+                turmaField.value = selectedOption.dataset.turma || '';
+            } else if (turmaField) {
+                turmaField.value = '';
+            }
+        }
+
+        function updateCurrentDateTime() {
+            const now = new Date();
+            const dataHoraField = document.getElementById('dataHoraField');
+            
+            if (dataHoraField) {
+                const formatted = now.toLocaleString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                dataHoraField.value = formatted;
+            }
+        }
+
+        function handleInfracaoSubmit(e) {
+            e.preventDefault();
+            
+            const alunoSelect = document.getElementById('alunoSelect');
+            const turmaField = document.getElementById('turmaField');
+            const descricaoField = document.getElementById('descricaoField');
+            const observacoesField = document.getElementById('observacoesField');
+            
+            if (!alunoSelect || !alunoSelect.value) {
+                showMessage('Por favor, selecione um aluno', 'error');
+                return;
+            }
+            
+            const aluno = appData.alunos.find(a => a.id == alunoSelect.value);
+            const now = new Date();
+            
+            const novaInfracao = {
+                id: Math.max(...appData.infracoes.map(i => i.id)) + 1,
+                professor: currentUser.nome,
+                aluno: aluno.nome,
+                turma: aluno.turma,
+                data: now.toISOString().split('T')[0],
+                hora: now.toTimeString().substring(0, 5),
+                descricao: descricaoField ? descricaoField.value : 'Uso de celular durante a aula',
+                observacoes: observacoesField ? observacoesField.value : '',
+                status: 'pendente'
+            };
+            
+            appData.infracoes.push(novaInfracao);
+            
+            // Limpar formulário
+            const infracaoForm = document.getElementById('infracaoForm');
+            if (infracaoForm) {
+                infracaoForm.reset();
+                updateCurrentDateTime();
+                const professorField = document.getElementById('professorField');
+                if (professorField) professorField.value = currentUser.nome;
+            }
+            
+            showMessage('Infração registrada com sucesso!', 'success');
+        }
+
+        // Funções do Gestor
+        function loadGestorData() {
+            calculateStatistics();
+            loadFiltersOptions();
+            loadGestorSelectOptions();
+            loadInfractionsList();
+        }
+
+        function calculateStatistics() {
+            const hoje = new Date().toISOString().split('T')[0];
+            const inicioSemana = getStartOfWeek(new Date()).toISOString().split('T')[0];
+            
+            const infracoesHoje = appData.infracoes.filter(i => i.data === hoje).length;
+            const infrucoesSemana = appData.infracoes.filter(i => i.data >= inicioSemana).length;
+            const infracoesPendentes = appData.infracoes.filter(i => i.status === 'pendente').length;  
+            const infracoesResolvidas = appData.infracoes.filter(i => i.status === 'resolvida').length;
+            
+            const elements = {
+                'infracoes-hoje': infracoesHoje,
+                'infracoes-semana': infrucoesSemana,
+                'infracoes-pendentes': infracoesPendentes,
+                'infracoes-resolvidas': infracoesResolvidas
+            };
+            
+            Object.entries(elements).forEach(([id, value]) => {
+                const element = document.getElementById(id);
+                if (element) element.textContent = value;
+            });
+        }
+
+        function getStartOfWeek(date) {
+            const startOfWeek = new Date(date);
+            const day = startOfWeek.getDay();
+            const diff = startOfWeek.getDate() - day;
+            return new Date(startOfWeek.setDate(diff));
+        }
+
+        function loadFiltersOptions() {
+            // Filtro de professores
+            const filtroProfessor = document.getElementById('filtro-professor');
+            if (filtroProfessor) {
+                filtroProfessor.innerHTML = '<option value="">Todos os professores</option>';
+                const professoresUnicos = [...new Set(appData.infracoes.map(i => i.professor))];
+                professoresUnicos.forEach(prof => {
+                    const option = document.createElement('option');
+                    option.value = prof;
+                    option.textContent = prof;
+                    filtroProfessor.appendChild(option);
+                });
+            }
+            
+            // Filtro de turmas
+            const filtroTurma = document.getElementById('filtro-turma');
+            if (filtroTurma) {
+                filtroTurma.innerHTML = '<option value="">Todas as turmas</option>';
+                appData.turmas.forEach(turma => {
+                    const option = document.createElement('option');
+                    option.value = turma;
+                    option.textContent = turma;
+                    filtroTurma.appendChild(option);
+                });
+            }
+        }
+
+        function loadInfractionsList() {
+            loadPendingInfractions();
+            loadHistoryInfractions();
+        }
+
+        function loadPendingInfractions() {
+            const container = document.getElementById('infracoes-pendentes-list');
+            if (!container) return;
+            
+            const infractions = appData.infracoes.filter(i => i.status === 'pendente');
+            
+            if (infractions.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📝</div>
+                        <p>Nenhuma infração pendente no momento</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = infractions.map(infraction => createInfractionHTML(infraction, true)).join('');
+        }
+
+        function loadHistoryInfractions() {
+            const container = document.getElementById('infracoes-historico-list');
+            if (!container) return;
+            
+            const infractions = appData.infracoes.filter(i => i.status === 'resolvida');
+            
+            if (infractions.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📚</div>
+                        <p>Nenhuma infração resolvida ainda</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = infractions.map(infraction => createInfractionHTML(infraction, false)).join('');
+        }
+
+        function createInfractionHTML(infraction, showActions = true) {
+            const dataFormatada = new Date(infraction.data + 'T00:00:00').toLocaleDateString('pt-BR');
+            const statusClass = infraction.status === 'pendente' ? 'status-pendente' : 'status-resolvida penalty-applied';
+            
+            return `
+                <div class="infraction-item ${statusClass}">
+                    <div class="infraction-header">
+                        <h4 class="infraction-title">${infraction.aluno}</h4>
+                        <span class="infraction-date">${dataFormatada} às ${infraction.hora}</span>
+                    </div>
+                    
+                    <div class="infraction-details">
+                        <div class="infraction-detail">
+                            <span class="detail-label">Professor:</span>
+                            <span class="detail-value">${infraction.professor}</span>
+                        </div>
+                        <div class="infraction-detail">
+                            <span class="detail-label">Turma:</span>
+                            <span class="detail-value">${infraction.turma}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="infraction-description">
+                        <strong>Descrição:</strong> ${infraction.descricao}
+                        ${infraction.observacoes ? `<br><strong>Observações:</strong> ${infraction.observacoes}` : ''}
+                    </div>
+                    
+                    ${showActions ? `
+                        <div class="infraction-actions">
+                            <button class="btn primary-btn" onclick="abrirModalPenalidade(${infraction.id})">
+                                ⚖️ Aplicar Penalidade
+                            </button>
+                        </div>
+                    ` : `
+                        <div class="penalty-info">
+                            <span class="penalty-badge">${infraction.penalidade}</span>
+                            <span>Aplicada em ${new Date(infraction.dataResolucao + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
+                        </div>
+                    `}
+                </div>
+            `;
+        }
 
         // Navegação por abas
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const tabName = e.target.dataset.tab;
-                mostrarAba(tabName);
+        function showTab(tabName) {
+            // Atualizar navegação
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
             });
-        });
-
-        // Formulários
-        document.getElementById('ocorrenciaForm')?.addEventListener('submit', async (e) => {
-            e.preventDefault();
+            event.target.classList.add('active');
             
-            const dados = {
-                turma: document.getElementById('turmaSelect').value,
-                aluno_nome: document.getElementById('alunoNome').value,
-                tipo_ocorrencia: document.getElementById('tipoOcorrencia').value,
-                descricao: document.getElementById('descricaoOcorrencia').value,
-                gravidade: document.getElementById('gravidadeSelect').value
-            };
-            
-            if (await SupabaseFuncoes.registrarOcorrencia(dados)) {
-                document.getElementById('ocorrenciaForm').reset();
-                carregarMinhasOcorrencias();
-            }
-        });
-
-        document.getElementById('turmaForm')?.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const professorEmail = document.getElementById('professorEmail').value;
-            const turma = document.getElementById('nomeTurma').value;
-            
-            if (await SupabaseFuncoes.vincularTurmaProfessor(professorEmail, turma)) {
-                document.getElementById('turmaForm').reset();
-            }
-        });
-
-        document.getElementById('novoUsuarioForm')?.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const email = document.getElementById('novoEmail').value;
-            const senha = document.getElementById('novaSenha').value;
-            const nome = document.getElementById('novoNome').value;
-            const papel = document.getElementById('novoPapel').value;
-            
-            if (await SupabaseFuncoes.criarUsuarioComPerfil(email, senha, papel, nome)) {
-                document.getElementById('novoUsuarioForm').reset();
-                carregarListaUsuarios();
-            }
-        });
-
-        // Funções auxiliares de interface
-        function mostrarTela(telaId) {
-            document.querySelectorAll('.screen').forEach(screen => {
-                screen.style.display = 'none';
+            // Mostrar conteúdo
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+                content.classList.add('hidden');
             });
-            document.getElementById(telaId).style.display = 'block';
+            
+            const targetTab = document.getElementById(`tab-${tabName}`);
+            if (targetTab) {
+                targetTab.classList.remove('hidden');
+                targetTab.classList.add('active');
+            }
         }
 
-        function mostrarAba(tabName) {
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.style.display = 'none';
-            });
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
+        // Sistema de filtros
+        function applyFilters() {
+            const filtroProfessor = document.getElementById('filtro-professor');
+            const filtroTurma = document.getElementById('filtro-turma');
+            const filtroData = document.getElementById('filtro-data');
             
-            document.getElementById(tabName + 'Tab').style.display = 'block';
-            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            const filtroProfessorValue = filtroProfessor ? filtroProfessor.value : '';
+            const filtroTurmaValue = filtroTurma ? filtroTurma.value : '';
+            const filtroDataValue = filtroData ? filtroData.value : '';
+            
+            let infracoesFiltradas = appData.infracoes.filter(i => i.status === 'pendente');
+            
+            if (filtroProfessorValue) {
+                infracoesFiltradas = infracoesFiltradas.filter(i => i.professor === filtroProfessorValue);
+            }
+            
+            if (filtroTurmaValue) {
+                infracoesFiltradas = infracoesFiltradas.filter(i => i.turma === filtroTurmaValue);
+            }
+            
+            if (filtroDataValue) {
+                infracoesFiltradas = infracoesFiltradas.filter(i => i.data === filtroDataValue);
+            }
+            
+            const container = document.getElementById('infracoes-pendentes-list');
+            if (!container) return;
+            
+            if (infracoesFiltradas.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">🔍</div>
+                        <p>Nenhuma infração encontrada com os filtros aplicados</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = infracoesFiltradas.map(infraction => createInfractionHTML(infraction, true)).join('');
         }
 
-        // ===================================================================
-        // FUNÇÕES DE DEMONSTRAÇÃO DAS FUNCIONALIDADES SUPABASE
-        // ===================================================================
+        function limparFiltros() {
+            const elements = ['filtro-professor', 'filtro-turma', 'filtro-data'];
+            elements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.value = '';
+            });
+            loadPendingInfractions();
+        }
 
-        async function testarConexaoSupabase() {
-            const resultado = document.getElementById('resultadoTeste');
-            resultado.style.display = 'block';
-            resultado.innerHTML = '<p>🔄 Testando conexão com Supabase...</p>';
+        // Sistema de modal para penalidades
+        function abrirModalPenalidade(infracaoId) {
+            currentInfractionId = infracaoId;
+            const infraction = appData.infracoes.find(i => i.id === infracaoId);
             
-            try {
-                // Tentar fazer uma consulta simples
-                const { data, error } = await supabase.from('perfis').select('count').limit(1);
-                
-                if (error) {
-                    resultado.innerHTML = `<p>❌ Erro na conexão: ${error.message}</p>`;
-                } else {
-                    resultado.innerHTML = `
-                        <p>✅ Conexão com Supabase estabelecida!</p>
-                        <p>📊 URL: ${SUPABASE_URL}</p>
-                        <p>🔑 Chave: ${SUPABASE_ANON_KEY.substring(0, 20)}...</p>
-                    `;
+            if (!infraction) return;
+            
+            // Preencher resumo da infração
+            const summary = document.getElementById('infraction-summary');
+            if (summary) {
+                summary.innerHTML = `
+                    <div class="summary-title">Infração de ${infraction.aluno}</div>
+                    <div class="summary-details">
+                        <strong>Professor:</strong> ${infraction.professor}<br>
+                        <strong>Turma:</strong> ${infraction.turma}<br>
+                        <strong>Data:</strong> ${new Date(infraction.data + 'T00:00:00').toLocaleDateString('pt-BR')} às ${infraction.hora}<br>
+                        <strong>Descrição:</strong> ${infraction.descricao}<br>
+                        ${infraction.observacoes ? `<strong>Observações:</strong> ${infraction.observacoes}` : ''}
+                    </div>
+                `;
+            }
+            
+            // Limpar select de penalidade
+            const penalidadeSelect = document.getElementById('penalidade-select');
+            if (penalidadeSelect) penalidadeSelect.value = '';
+            
+            // Mostrar modal
+            const modal = document.getElementById('penalidade-modal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function fecharModal() {
+            const modal = document.getElementById('penalidade-modal');
+            if (modal) modal.classList.add('hidden');
+            currentInfractionId = null;
+        }
+
+        function handlePenalidadeSubmit(e) {
+            e.preventDefault();
+            
+            const penalidadeSelect = document.getElementById('penalidade-select');
+            const penalidade = penalidadeSelect ? penalidadeSelect.value : '';
+            
+            if (!penalidade) {
+                showMessage('Por favor, selecione uma penalidade', 'error');
+                return;
+            }
+            
+            // Atualizar infração
+            const infraction = appData.infracoes.find(i => i.id === currentInfractionId);
+            if (infraction) {
+                infraction.status = 'resolvida';
+                infraction.penalidade = penalidade;
+                infraction.dataResolucao = new Date().toISOString().split('T')[0];
+            }
+            
+            // Atualizar interface
+            calculateStatistics();
+            loadInfractionsList();
+            
+            // Fechar modal
+            fecharModal();
+            
+            showMessage('Penalidade aplicada com sucesso!', 'success');
+        }
+
+        // Sistema de mensagens
+        function showMessage(text, type = 'success') {
+            const container = document.getElementById('message-container');
+            if (!container) return;
+            
+            const message = document.createElement('div');
+            message.className = `message ${type}`;
+            message.textContent = text;
+            
+            container.appendChild(message);
+            
+            // Remover mensagem após 3 segundos
+            setTimeout(() => {
+                if (message.parentNode) {
+                    message.parentNode.removeChild(message);
                 }
-            } catch (err) {
-                resultado.innerHTML = `<p>❌ Erro inesperado: ${err.message}</p>`;
-            }
+            }, 3000);
         }
 
-        async function testarLogin() {
-            const email = document.getElementById('loginEmail').value || 'teste@exemplo.com';
-            const password = document.getElementById('loginPassword').value || '123456';
-            
-            const resultado = document.getElementById('resultadoTeste');
-            resultado.style.display = 'block';
-            resultado.innerHTML = `<p>🔄 Testando login com: ${email}</p>`;
-            
-            const sucesso = await SupabaseFuncoes.fazerLogin(email, password);
-            
-            if (sucesso) {
-                resultado.innerHTML += `<p>✅ Login realizado com sucesso!</p>`;
-            } else {
-                resultado.innerHTML += `<p>❌ Falha no login. Verifique as credenciais.</p>`;
-            }
-        }
-
-        async function testarCadastro() {
-            const email = `teste${Date.now()}@exemplo.com`;
-            const password = 'senha123';
-            
-            const resultado = document.getElementById('resultadoTeste');
-            resultado.style.display = 'block';
-            resultado.innerHTML = `<p>🔄 Testando cadastro com: ${email}</p>`;
-            
-            const sucesso = await SupabaseFuncoes.cadastrarUsuario(email, password);
-            
-            if (sucesso) {
-                resultado.innerHTML += `<p>✅ Cadastro realizado com sucesso!</p>`;
-            } else {
-                resultado.innerHTML += `<p>❌ Falha no cadastro.</p>`;
-            }
-        }
-
-        async function demonstrarBuscarPerfis() {
-            const resultado = document.getElementById('resultadoDemonstracao');
-            resultado.style.display = 'block';
-            resultado.innerHTML = '<p>🔄 Buscando perfis...</p>';
-            
-            const perfis = await SupabaseFuncoes.buscarTodosPerfis();
-            
-            if (perfis.length > 0) {
-                const lista = perfis.map(p => 
-                    `<li>👤 ${p.nome || p.email} - ${p.papel === 'manager' ? '👔 Gestor' : '👨‍🏫 Professor'}</li>`
-                ).join('');
-                
-                resultado.innerHTML = `
-                    <h4>✅ Perfis Encontrados (${perfis.length}):</h4>
-                    <ul>${lista}</ul>
-                `;
-            } else {
-                resultado.innerHTML = '<p>📭 Nenhum perfil encontrado.</p>';
-            }
-        }
-
-        async function demonstrarBuscarTurmas() {
-            const resultado = document.getElementById('resultadoDemonstracao');
-            resultado.style.display = 'block';
-            resultado.innerHTML = '<p>🔄 Buscando turmas...</p>';
-            
-            const turmas = await SupabaseFuncoes.buscarTodasTurmas();
-            
-            if (turmas.length > 0) {
-                const lista = turmas.map(t => 
-                    `<li>📚 ${t.turma} - Professor: ${t.perfis.nome || t.perfis.email}</li>`
-                ).join('');
-                
-                resultado.innerHTML = `
-                    <h4>✅ Turmas Encontradas (${turmas.length}):</h4>
-                    <ul>${lista}</ul>
-                `;
-            } else {
-                resultado.innerHTML = '<p>📭 Nenhuma turma encontrada.</p>';
-            }
-        }
-
-        async function demonstrarBuscarOcorrencias() {
-            const resultado = document.getElementById('resultadoDemonstracao');
-            resultado.style.display = 'block';
-            resultado.innerHTML = '<p>🔄 Buscando ocorrências...</p>';
-            
-            const ocorrencias = await SupabaseFuncoes.buscarOcorrencias();
-            
-            if (ocorrencias.length > 0) {
-                const lista = ocorrencias.map(o => 
-                    `<li>📋 ${o.tipo_ocorrencia} - ${o.aluno_nome} (${o.turma}) - ${o.status}</li>`
-                ).join('');
-                
-                resultado.innerHTML = `
-                    <h4>✅ Ocorrências Encontradas (${ocorrencias.length}):</h4>
-                    <ul>${lista}</ul>
-                `;
-            } else {
-                resultado.innerHTML = '<p>📭 Nenhuma ocorrência encontrada.</p>';
-            }
-        }
-
-        async function demonstrarEstatisticas() {
-            const resultado = document.getElementById('resultadoDemonstracao');
-            resultado.style.display = 'block';
-            resultado.innerHTML = '<p>🔄 Carregando estatísticas...</p>';
-            
-            const stats = await SupabaseFuncoes.buscarEstatisticas();
-            
-            resultado.innerHTML = `
-                <h4>📊 Estatísticas do Sistema:</h4>
-                <ul>
-                    <li>📅 Ocorrências hoje: ${stats.ocorrenciasHoje}</li>
-                    <li>⏳ Pendentes: ${stats.ocorrenciasPendentes}</li>
-                    <li>✅ Resolvidas: ${stats.ocorrenciasResolvidas}</li>
-                    <li>👥 Total de usuários: ${stats.totalUsuarios}</li>
-                </ul>
-            `;
-        }
-
-        // Carregar dados iniciais ao entrar na aplicação
-        async function carregarDadosIniciais() {
-            // Atualizar informações do usuário
-            const userInfo = document.getElementById('userInfo');
-            userInfo.textContent = `${SupabaseFuncoes.getUserEmail()} (${SupabaseFuncoes.getUserRole() === 'manager' ? 'Gestor' : 'Professor'})`;
-            
-            // Mostrar/ocultar elementos baseado no papel
-            const managerElements = document.querySelectorAll('.manager-only');
-            const isManager = SupabaseFuncoes.getUserRole() === 'manager';
-            
-            managerElements.forEach(el => {
-                el.style.display = isManager ? 'block' : 'none';
-            });
-            
-            // Carregar turmas do usuário
-            await carregarTurmasUsuario();
-            
-            // Se for gestor, carregar estatísticas
-            if (isManager) {
-                await atualizarEstatisticas();
-            }
-        }
-
-        async function carregarTurmasUsuario() {
-            const turmas = await SupabaseFuncoes.buscarMinhasTurmas();
-            
-            const selects = ['turmaSelect', 'filtroTurma'];
-            selects.forEach(selectId => {
-                const select = document.getElementById(selectId);
-                if (select) {
-                    select.innerHTML = selectId === 'filtroTurma' ? 
-                        '<option value="">Todas as Turmas</option>' :
-                        '<option value="">Selecione uma turma</option>';
-                    
-                    turmas.forEach(turma => {
-                        const option = document.createElement('option');
-                        option.value = turma.turma;
-                        option.textContent = turma.turma;
-                        select.appendChild(option);
-                    });
-                }
-            });
-        }
-
-        async function carregarMinhasOcorrencias() {
-            const ocorrencias = await SupabaseFuncoes.buscarOcorrencias();
-            const container = document.getElementById('listaOcorrencias');
-            
-            if (ocorrencias.length === 0) {
-                container.innerHTML = '<p class="no-data">📭 Nenhuma ocorrência encontrada.</p>';
-                return;
-            }
-            
-            container.innerHTML = ocorrencias.map(occ => `
-                <div class="occurrence-card status-${occ.status}">
-                    <div class="occurrence-header">
-                        <span class="date">${new Date(occ.data_ocorrencia).toLocaleString('pt-BR')}</span>
-                        <span class="status ${occ.status}">${occ.status}</span>
-                    </div>
-                    <div class="occurrence-body">
-                        <h4>${occ.tipo_ocorrencia}</h4>
-                        <p><strong>Aluno:</strong> ${occ.aluno_nome}</p>
-                        <p><strong>Turma:</strong> ${occ.turma}</p>
-                        <p><strong>Gravidade:</strong> ${occ.gravidade}</p>
-                        <p><strong>Descrição:</strong> ${occ.descricao}</p>
-                        ${occ.penalidade ? `<p><strong>Penalidade:</strong> ${occ.penalidade}</p>` : ''}
-                        ${occ.observacoes_gestor ? `<p><strong>Observações:</strong> ${occ.observacoes_gestor}</p>` : ''}
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        async function carregarOcorrenciasComFiltros() {
-            const filtros = {
-                status: document.getElementById('filtroStatus').value,
-                turma: document.getElementById('filtroTurma').value
-            };
-            
-            const ocorrencias = await SupabaseFuncoes.buscarOcorrencias(filtros);
-            // Usar a mesma função de renderização
-            const container = document.getElementById('listaOcorrencias');
-            // ... código similar ao carregarMinhasOcorrencias
-        }
-
-        async function carregarListaUsuarios() {
-            const usuarios = await SupabaseFuncoes.buscarTodosPerfis();
-            const container = document.getElementById('listaUsuarios');
-            
-            if (usuarios.length === 0) {
-                container.innerHTML = '<p>📭 Nenhum usuário encontrado.</p>';
-                return;
-            }
-            
-            container.innerHTML = `
-                <div style="display: grid; gap: 12px;">
-                    ${usuarios.map(user => `
-                        <div class="perfil-card">
-                            <h4>${user.nome || user.email}</h4>
-                            <p><strong>Email:</strong> ${user.email}</p>
-                            <p><strong>Papel:</strong> ${user.papel === 'manager' ? '👔 Gestor' : '👨‍🏫 Professor'}</p>
-                            <p><strong>Criado em:</strong> ${new Date(user.created_at).toLocaleDateString('pt-BR')}</p>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        }
-
-        async function atualizarEstatisticas() {
-            const stats = await SupabaseFuncoes.buscarEstatisticas();
-            
-            document.getElementById('statHoje').textContent = stats.ocorrenciasHoje || 0;
-            document.getElementById('statPendentes').textContent = stats.ocorrenciasPendentes || 0;
-            document.getElementById('statResolvidas').textContent = stats.ocorrenciasResolvidas || 0;
-            document.getElementById('statUsuarios').textContent = stats.totalUsuarios || 0;
-        }
-
-        async function carregarOcorrenciasPendentes() {
-            const ocorrencias = await SupabaseFuncoes.buscarOcorrencias({ status: 'pendente' });
-            const container = document.getElementById('ocorrenciasPendentes');
-            
-            if (ocorrencias.length === 0) {
-                container.innerHTML = '<p>✅ Nenhuma ocorrência pendente!</p>';
-                return;
-            }
-            
-            container.innerHTML = ocorrencias.map(occ => `
-                <div class="occurrence-card status-pendente" style="margin-bottom: 12px;">
-                    <div class="occurrence-body">
-                        <h4>${occ.tipo_ocorrencia}</h4>
-                        <p><strong>Aluno:</strong> ${occ.aluno_nome} | <strong>Turma:</strong> ${occ.turma}</p>
-                        <p><strong>Professor:</strong> ${occ.professor_email}</p>
-                        <p><strong>Descrição:</strong> ${occ.descricao}</p>
-                        <button onclick="resolverOcorrenciaModal(${occ.id})" class="resolve-btn">⚖️ Resolver</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        async function resolverOcorrenciaModal(ocorrenciaId) {
-            const penalidade = prompt('Digite a penalidade aplicada:');
-            if (!penalidade) return;
-            
-            const observacoes = prompt('Observações do gestor (opcional):');
-            
-            if (await SupabaseFuncoes.resolverOcorrencia(ocorrenciaId, penalidade, observacoes)) {
-                carregarOcorrenciasPendentes();
-                atualizarEstatisticas();
-            }
-        }
-
-        async function gerarRelatorio() {
-            const dataInicio = document.getElementById('dataInicio').value;
-            const dataFim = document.getElementById('dataFim').value;
-            
-            if (!dataInicio || !dataFim) {
-                alert('Por favor, selecione as datas para o relatório');
-                return;
-            }
-            
-            const filtros = {
-                data_inicio: dataInicio,
-                data_fim: dataFim + 'T23:59:59'
-            };
-            
-            const ocorrencias = await SupabaseFuncoes.buscarOcorrencias(filtros);
-            const container = document.getElementById('relatorioResultado');
-            
-            const totalOcorrencias = ocorrencias.length;
-            const pendentes = ocorrencias.filter(o => o.status === 'pendente').length;
-            const resolvidas = ocorrencias.filter(o => o.status === 'resolvida').length;
-            
-            const tiposCount = {};
-            ocorrencias.forEach(o => {
-                tiposCount[o.tipo_ocorrencia] = (tiposCount[o.tipo_ocorrencia] || 0) + 1;
-            });
-            
-            container.innerHTML = `
-                <div class="report-summary">
-                    <h3>📊 Relatório: ${new Date(dataInicio).toLocaleDateString('pt-BR')} a ${new Date(dataFim).toLocaleDateString('pt-BR')}</h3>
-                    <p><strong>Total de ocorrências:</strong> ${totalOcorrencias}</p>
-                    <p><strong>Pendentes:</strong> ${pendentes} | <strong>Resolvidas:</strong> ${resolvidas}</p>
-                    
-                    <h4>📋 Tipos mais comuns:</h4>
-                    <ul>
-                        ${Object.entries(tiposCount)
-                            .sort(([,a], [,b]) => b - a)
-                            .map(([tipo, count]) => `<li>${tipo}: ${count}</li>`)
-                            .join('')}
-                    </ul>
-                </div>
-            `;
-        }
+        // Inicialização da data e hora a cada minuto
+        setInterval(updateCurrentDateTime, 60000);
     </script>
 </body>
 </html>
