@@ -72,7 +72,6 @@ function calculateStatistics() {
   const infracoes = window.appData.infracoes || [];
 
   const infracoesHoje = infracoes.filter(i => i.data === hoje).length;
-  // Exemplo, adicione cálculos para semana, pendentes e resolvidas aqui:
   const semana = new Date();
   semana.setDate(semana.getDate() - 7);
   const infracoesSemana = infracoes.filter(i => new Date(i.data) >= semana).length;
@@ -86,18 +85,15 @@ function calculateStatistics() {
 }
 
 function loadInfractionsList() {
-  // Aqui implementar o carregamento das infrações na tela, pendentes e histórico
-  // Por exemplo: preencher #infracoes-pendentes-list e #infracoes-historico-list conforme os dados.
+  // Implementar lista de infrações pendentes e histórico aqui
 }
 
-// Atualize o valor do campo turma ao mudar seleção do aluno
 function updateTurmaField() {
   const alunoSelect = document.getElementById('alunoSelect');
   const turmaField = document.getElementById('turmaField');
   if (!alunoSelect || !turmaField) return;
 
   const selectedOption = alunoSelect.options[alunoSelect.selectedIndex];
-  // Pega o atributo dataset.turma criado na opção
   const turma = selectedOption ? selectedOption.dataset.turma : '';
   turmaField.value = turma;
 }
@@ -115,6 +111,11 @@ function showScreen(screenId) {
 }
 
 function showLogin(userType) {
+  if (!window.appData || !window.appData.professores) {
+    showMessage('Os dados ainda estão carregando, tente novamente.', 'error');
+    return;
+  }
+
   currentUserType = userType;
   const loginTypeSpan = document.getElementById('login-type');
   loginTypeSpan.textContent = userType === 'professor' ? 'Professor' : 'Gestor';
@@ -136,7 +137,7 @@ function showLogin(userType) {
     userSelect.appendChild(option);
   }
 
-  showScreen('login-form'); // Corrigido para abrir tela de login de fato
+  showScreen('login-form');
 }
 
 async function handleLogin(e) {
@@ -226,7 +227,7 @@ async function handlePenalidadeSubmit(e) {
   showMessage('Penalidade aplicada com sucesso!', 'success');
 }
 
-// Outras funções para interface, exibir modais, mensagens e filtros devem ser adicionadas conforme necessário
+// Outras funções para interface, exibir modais, mensagens e filtros devem ser adicionadas conforme necessidade
 
 function showMessage(msg, type = 'info') {
   const messageContainer = document.getElementById('message-container');
@@ -244,10 +245,8 @@ function fecharModal() {
 }
 
 function showTab(tabId) {
-  // Função para alternar entre tabs 'pendentes' e 'historico'
   const pendentesTab = document.getElementById('tab-pendentes');
   const historicoTab = document.getElementById('tab-historico');
-  const pendenteBtn = document.querySelector('.nav-tab.active');
   const tabs = document.querySelectorAll('.nav-tab');
 
   tabs.forEach(tab => tab.classList.remove('active'));
@@ -263,12 +262,11 @@ function showTab(tabId) {
 }
 
 function applyFilters() {
-  // Aplicar filtros nos dados de infrações com base nos selects e input
-  // Isto deve filtrar a lista de infrações exibida
-  // Implementar conforme necessidade
-  // Exemplo: filtrar window.appData.infracoes e atualizar listas na tela
+  // Implementar lógica para aplicar filtros e atualizar listas na tela
 }
-// No final do app.js - apenas funções que existem:
+
+// Funções logout e limparFiltros para uso no HTML
+
 function logout() {
   currentUser = null;
   currentUserType = null;
@@ -282,7 +280,7 @@ function limparFiltros() {
   applyFilters();
 }
 
-// Expondo ao escopo global
+// Expondo funções globalmente para uso no HTML
 window.showLogin = showLogin;
 window.showScreen = showScreen;
 window.logout = logout;
