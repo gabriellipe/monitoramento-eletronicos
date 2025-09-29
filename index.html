@@ -1,260 +1,215 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Infrações Disciplinares</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sistema de Infrações Disciplinares</title>
+<link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <div class="app">
-        <!-- Tela de Login -->
-        <div id="login-screen" class="screen active">
-            <div class="container">
-                <div class="login-container">
-                    <div class="card">
-                        <div class="card__body">
-                            <h1 class="login-title">Sistema de Infrações Disciplinares</h1>
-                            <p class="login-subtitle">Selecione seu perfil para acessar</p>
-                            
-                            <div class="profile-buttons">
-                                <button class="btn btn--primary btn--lg profile-btn" onclick="showLogin('professor')">
-                                    <span>👨‍🏫</span>
-                                    Professor
-                                </button>
-                                <button class="btn btn--primary btn--lg profile-btn" onclick="showLogin('gestor')">
-                                    <span>👩‍💼</span>
-                                    Gestor
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+<div class="app">
+  <!-- Tela de Login -->
+  <div id="login-screen" class="screen active">
+    <div class="container">
+      <div class="login-container">
+        <div class="card">
+          <div class="card__body">
+            <h1 class="login-title">Sistema de Infrações Disciplinares</h1>
+            <p class="login-subtitle">Selecione seu perfil para acessar</p>
+            <div class="profile-buttons">
+              <button class="btn btn--primary btn--lg profile-btn" onclick="showLogin('professor')">
+                <span>👨‍🏫</span> Professor
+              </button>
+              <button class="btn btn--primary btn--lg profile-btn" onclick="showLogin('gestor')">
+                <span>👩‍💼</span> Gestor
+              </button>
             </div>
+          </div>
         </div>
-
-        <!-- Formulário de Login -->
-        <div id="login-form" class="screen hidden">
-            <div class="container">
-                <div class="login-container">
-                    <div class="card">
-                        <div class="card__body">
-                            <button class="btn btn--outline btn--sm back-btn" onclick="showScreen('login-screen')">
-                                ← Voltar
-                            </button>
-                            
-                            <h2 class="login-form-title">Login - <span id="login-type"></span></h2>
-                            
-                            <form id="loginForm" class="login-form">
-                                <div class="form-group">
-                                    <label class="form-label">Selecione seu nome:</label>
-                                    <select class="form-control" id="userSelect" required>
-                                        <option value="">Escolha...</option>
-                                    </select>
-                                </div>
-                                
-                                <button type="submit" class="btn btn--primary btn--full-width">
-                                    Entrar
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Interface do Professor -->
-        <div id="professor-screen" class="screen hidden">
-            <header class="header">
-                <div class="container">
-                    <div class="header-content">
-                        <h1>Sistema de Infrações - Professor</h1>
-                        <div class="header-actions">
-                            <span class="user-info" id="professor-name"></span>
-                            <button class="btn btn--outline" onclick="logout()">Sair</button>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
-            <main class="container">
-                <div class="professor-main">
-                    <div class="card">
-                        <div class="card__body">
-                            <h2>Registrar Infração</h2>
-                            <p class="text-secondary">Registre rapidamente infrações relacionadas ao uso de celular em sala de aula</p>
-                            
-                            <form id="infracaoForm" class="infraction-form">
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label class="form-label">Professor</label>
-                                        <input type="text" class="form-control" id="professorField" readonly>
-                                    </div>
-                                    
-                                    <div class="form-group">
-                                        <label class="form-label">Data e Hora</label>
-                                        <input type="text" class="form-control" id="dataHoraField" readonly>
-                                    </div>
-                                </div>
-                                
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label class="form-label">Aluno *</label>
-                                        <select class="form-control" id="alunoSelect" required>
-                                            <option value="">Selecione o aluno...</option>
-                                        </select>
-                                    </div>
-                                    
-                                    <div class="form-group">
-                                        <label class="form-label">Turma</label>
-                                        <input type="text" class="form-control" id="turmaField" readonly>
-                                    </div>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label class="form-label">Descrição da Infração</label>
-                                    <input type="text" class="form-control" id="descricaoField" value="Uso de celular durante a aula" required>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label class="form-label">Observações Adicionais</label>
-                                    <textarea class="form-control" id="observacoesField" rows="3" placeholder="Descreva o contexto da infração..."></textarea>
-                                </div>
-                                
-                                <button type="submit" class="btn btn--primary btn--lg btn--full-width">
-                                    Registrar Infração
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </main>
-        </div>
-
-        <!-- Interface do Gestor -->
-        <div id="gestor-screen" class="screen hidden">
-            <header class="header">
-                <div class="container">
-                    <div class="header-content">
-                        <h1>Sistema de Infrações - Gestão</h1>
-                        <div class="header-actions">
-                            <span class="user-info" id="gestor-name"></span>
-                            <button class="btn btn--outline" onclick="logout()">Sair</button>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
-            <main class="container">
-                <div class="gestor-main">
-                    <!-- Estatísticas -->
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-number" id="ocorrencia-hoje">0</div>
-                            <div class="stat-label">Infrações Hoje</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-number" id="ocorrencia-semana">0</div>
-                            <div class="stat-label">Esta Semana</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-number" id="ocorrencia-pendentes">0</div>
-                            <div class="stat-label">Pendentes</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-number" id="ocorrencia-resolvidas">0</div>
-                            <div class="stat-label">Resolvidas</div>
-                        </div>
-                    </div>
-
-                    <!-- Navegação -->
-                    <div class="nav-tabs">
-                        <button class="nav-tab active" onclick="showTab('pendentes')">
-                            Infrações Pendentes
-                        </button>
-                        <button class="nav-tab" onclick="showTab('historico')">
-                            Histórico
-                        </button>
-                    </div>
-
-                    <!-- Tab Pendentes -->
-                    <div id="tab-pendentes" class="tab-content active">
-                        <div class="card">
-                            <div class="card__body">
-                                <div class="filters">
-                                    <h3>Filtros</h3>
-                                    <div class="filter-row">
-                                        <select class="form-control filter-select" id="filtro-professor">
-                                            <option value="">Todos os professores</option>
-                                        </select>
-                                        <select class="form-control filter-select" id="filtro-turma">
-                                            <option value="">Todas as turmas</option>
-                                        </select>
-                                        <input type="date" class="form-control filter-select" id="filtro-data">
-                                        <button class="btn btn--secondary" onclick="limparFiltros()">Limpar</button>
-                                    </div>
-                                </div>
-
-                                <div class="infractions-list" id="ocorrencia-pendentes-list">
-                                    <!-- Infrações pendentes serão carregadas aqui -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Tab Histórico -->
-                    <div id="tab-historico" class="tab-content hidden">
-                        <div class="card">
-                            <div class="card__body">
-                                <h3>Infrações Resolvidas</h3>
-                                <div class="infractions-list" id="ocorrencia-historico-list">
-                                    <!-- Histórico será carregado aqui -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </main>
-        </div>
-
-        <!-- Modal de Penalidade -->
-        <div id="penalidade-modal" class="modal hidden">
-            <div class="modal-overlay" onclick="fecharModal()"></div>
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Aplicar Penalidade</h3>
-                    <button class="modal-close" onclick="fecharModal()">×</button>
-                </div>
-                <div class="modal-body">
-                    <div class="infraction-summary" id="infraction-summary">
-                        <!-- Resumo da infração -->
-                    </div>
-                    
-                    <form id="penalidadeForm">
-                        <div class="form-group">
-                            <label class="form-label">Selecione a Penalidade:</label>
-                            <select class="form-control" id="penalidade-select" required>
-                                <option value="">Escolha a penalidade...</option>
-                            </select>
-                        </div>
-                        
-                        <div class="modal-actions">
-                            <button type="button" class="btn btn--outline" onclick="fecharModal()">
-                                Cancelar
-                            </button>
-                            <button type="submit" class="btn btn--primary">
-                                Aplicar Penalidade
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- Mensagens de sucesso/erro -->
-        <div id="message-container" class="message-container"></div>
+      </div>
     </div>
-
-    <script type="module" src="app.js"></script>
+  </div>
+  <!-- Formulário de Login -->
+  <div id="login-form" class="screen hidden">
+    <div class="container">
+      <div class="login-container">
+        <div class="card">
+          <div class="card__body">
+            <button class="btn btn--outline btn--sm back-btn" onclick="showScreen('login-screen')">
+              ← Voltar
+            </button>
+            <h2 class="login-form-title">Login - <span id="login-type"></span></h2>
+            <form id="loginForm" class="login-form">
+              <div class="form-group">
+                <label class="form-label">Selecione seu nome:</label>
+                <select class="form-control" id="userSelect" required>
+                  <option value="">Escolha...</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn--primary btn--full-width">Entrar</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Interface do Professor -->
+  <div id="professor-screen" class="screen hidden">
+    <header class="header">
+      <div class="container">
+        <div class="header-content">
+          <h1>Sistema de Infrações - Professor</h1>
+          <div class="header-actions">
+            <span class="user-info" id="professor-name"></span>
+            <button class="btn btn--outline" onclick="logout()">Sair</button>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main class="container">
+      <div class="professor-main">
+        <div class="card">
+          <div class="card__body">
+            <h2>Registrar Infração</h2>
+            <p class="text-secondary">Registre rapidamente infrações relacionadas ao uso de celular em sala de aula</p>
+            <form id="infracaoForm" class="infraction-form">
+              <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label">Professor</label>
+                    <input type="text" class="form-control" id="professorField" readonly />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Data e Hora</label>
+                    <input type="text" class="form-control" id="dataHoraField" readonly />
+                  </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Aluno *</label>
+                  <select class="form-control" id="alunoSelect" required>
+                    <option value="">Selecione o aluno...</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Turma</label>
+                  <input type="text" class="form-control" id="turmaField" readonly />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Descrição da Infração</label>
+                <input type="text" class="form-control" id="descricaoField" value="Uso de celular durante a aula" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Observações Adicionais</label>
+                <textarea class="form-control" id="observacoesField" rows="3" placeholder="Descreva o contexto da infração..."></textarea>
+              </div>
+              <button type="submit" class="btn btn--primary btn--lg btn--full-width">Registrar Infração</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <!-- Interface do Gestor -->
+  <div id="gestor-screen" class="screen hidden">
+    <header class="header">
+      <div class="container">
+        <div class="header-content">
+          <h1>Sistema de Infrações - Gestão</h1>
+          <div class="header-actions">
+            <span class="user-info" id="gestor-name"></span>
+            <button class="btn btn--outline" onclick="logout()">Sair</button>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main class="container">
+      <div class="gestor-main">
+        <!-- Estatísticas -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-number" id="ocorrencia-hoje">0</div>
+            <div class="stat-label">Infrações Hoje</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="ocorrencia-semana">0</div>
+            <div class="stat-label">Esta Semana</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="ocorrencia-pendentes">0</div>
+            <div class="stat-label">Pendentes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="ocorrencia-resolvidas">0</div>
+            <div class="stat-label">Resolvidas</div>
+          </div>
+        </div>
+        <!-- Navegação -->
+        <div class="nav-tabs">
+          <button class="nav-tab active" onclick="showTab('pendentes')">Infrações Pendentes</button>
+          <button class="nav-tab" onclick="showTab('historico')">Histórico</button>
+        </div>
+        <!-- Tab Pendentes -->
+        <div id="tab-pendentes" class="tab-content active">
+          <div class="card">
+            <div class="card__body">
+              <div class="filters">
+                <h3>Filtros</h3>
+                <div class="filter-row">
+                  <select class="form-control filter-select" id="filtro-professor">
+                    <option value="">Todos os professores</option>
+                  </select>
+                  <select class="form-control filter-select" id="filtro-turma">
+                    <option value="">Todas as turmas</option>
+                  </select>
+                  <input type="date" class="form-control filter-select" id="filtro-data" />
+                  <button class="btn btn--secondary" onclick="limparFiltros()">Limpar</button>
+                </div>
+              </div>
+              <div class="infractions-list" id="ocorrencia-pendentes-list"></div>
+            </div>
+          </div>
+        </div>
+        <!-- Tab Histórico -->
+        <div id="tab-historico" class="tab-content hidden">
+          <div class="card">
+            <div class="card__body">
+              <h3>Infrações Resolvidas</h3>
+              <div class="infractions-list" id="ocorrencia-historico-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <!-- Modal de Penalidade -->
+  <div id="penalidade-modal" class="modal hidden">
+    <div class="modal-overlay" onclick="fecharModal()"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Aplicar Penalidade</h3>
+        <button class="modal-close" onclick="fecharModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="infraction-summary" id="infraction-summary"></div>
+        <form id="penalidadeForm">
+          <div class="form-group">
+            <label class="form-label">Selecione a Penalidade:</label>
+            <select class="form-control" id="penalidade-select" required>
+              <option value="">Escolha a penalidade...</option>
+            </select>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn--outline" onclick="fecharModal()">Cancelar</button>
+            <button type="submit" class="btn btn--primary">Aplicar Penalidade</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <!-- Mensagens de sucesso/erro -->
+  <div id="message-container" class="message-container"></div>
+</div>
+<script type="module" src="app.js"></script>
 </body>
 </html>
