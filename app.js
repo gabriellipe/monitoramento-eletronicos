@@ -25,9 +25,9 @@ async function loadInitialData() {
   const { data: professores } = await supabase.from('professores').select('*');
   const { data: alunos } = await supabase.from('alunos').select('*');
   const { data: tiposPenalidade } = await supabase.from('tipos_penalidade').select('*');
-  const { data: ocorrencias } = await supabase.from('ocorrencias').select('*');
+  const { data: infracoes } = await supabase.from('infracoes').select('*');
 
-  window.appData = { professores, alunos, tiposPenalidade, ocorrencias };
+  window.appData = { professores, alunos, tiposPenalidade, infracoes };
 }
 
 function setupFormEvents() {
@@ -61,27 +61,27 @@ function setupFilters() {
 }
 
 async function refreshInfractions() {
-  const { data: ocorrencia } = await supabase.from('ocorrencia').select('*');
-  window.appData.ocorrencia = ocorrencias;
+  const { data: infracoes } = await supabase.from('infracoes').select('*');
+  window.appData.infracoes = infracoes;
   calculateStatistics();
   loadInfractionsList();
 }
 
 function calculateStatistics() {
   const hoje = new Date().toISOString().split('T')[0];
-  const ocorrencia = window.appData.ocorrencia || [];
+  const infracoes = window.appData.infracoes || [];
 
-  const ocorrenciaHoje = ocorrencia.filter(i => i.data === hoje).length;
+  const infracoesHoje = infracoes.filter(i => i.data === hoje).length;
   const semana = new Date();
   semana.setDate(semana.getDate() - 7);
-  const ocorrenciaSemana = ocorrencia.filter(i => new Date(i.data) >= semana).length;
-  const ocorrenciaPendentes = ocorrencia.filter(i => i.status === 'pendente').length;
-  const ocorrenciaResolvidas = ocorrencia.filter(i => i.status === 'resolvida').length;
+  const infracoesSemana = infracoes.filter(i => new Date(i.data) >= semana).length;
+  const infracoesPendentes = infracoes.filter(i => i.status === 'pendente').length;
+  const infracoesResolvidas = infracoes.filter(i => i.status === 'resolvida').length;
 
-  document.getElementById('ocorrencia-hoje').textContent = ocorrenciaHoje;
-  document.getElementById('ocorrencia-semana').textContent = ocorrenciaSemana;
-  document.getElementById('ocorrencia-pendentes').textContent = ocorrenciaPendentes;
-  document.getElementById('ocorrencia-resolvidas').textContent = ocorrenciaResolvidas;
+  document.getElementById('infracoes-hoje').textContent = infracoesHoje;
+  document.getElementById('infracoes-semana').textContent = infracoesSemana;
+  document.getElementById('infracoes-pendentes').textContent = infracoesPendentes;
+  document.getElementById('infracoes-resolvidas').textContent = infracoesResolvidas;
 }
 
 function loadInfractionsList() {
@@ -194,7 +194,7 @@ async function handleInfracaoSubmit(e) {
     status: 'pendente'
   };
 
-  await supabase.from('ocorrencia').insert(newInfraction);
+  await supabase.from('infracoes').insert(newInfraction);
   await refreshInfractions();
   e.target.reset();
   updateCurrentDateTime();
@@ -218,7 +218,7 @@ async function handlePenalidadeSubmit(e) {
   if (!penalidade) return showMessage('Por favor, selecione uma penalidade', 'error');
 
   await supabase
-    .from('ocorrencia')
+    .from('infracoes')
     .update({ status: 'resolvida', penalidade, dataResolucao: new Date().toISOString().split('T')[0] })
     .eq('id', currentInfractionId);
 
